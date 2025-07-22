@@ -1,5 +1,10 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import { join } from 'path';
+import fs from 'fs';
+
+const configPath = join(app.getAppPath(), 'config.json');
+const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -30,4 +35,9 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
+});
+
+
+ipcMain.handle('get-launcher-name', async () => {
+  return config['launcher-name'];
 }); 

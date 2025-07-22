@@ -5,9 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const electron_1 = require("electron");
 const path_1 = require("path");
-const fs_1 = __importDefault(require("fs"));
-const configPath = (0, path_1.join)(electron_1.app.getAppPath(), 'config.json');
-const config = JSON.parse(fs_1.default.readFileSync(configPath, 'utf-8'));
+const config_json_1 = __importDefault(require("../../config.json"));
 function createWindow() {
     const win = new electron_1.BrowserWindow({
         width: 800,
@@ -36,5 +34,5 @@ electron_1.app.on('activate', () => {
     }
 });
 electron_1.ipcMain.handle('get-launcher-name', async () => {
-    return config['launcher-name'];
+    return config_json_1.default['launcher-name'];
 });
