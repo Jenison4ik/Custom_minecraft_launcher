@@ -1,9 +1,14 @@
+import { createLauncherDirectory } from './createLauncherDir';
 import { app, BrowserWindow, ipcMain } from 'electron';
+import { runMinecraft } from './launch';
 import { join } from 'path';
 import fs from 'fs';
 
+process.stdout.write('\x1b[0m');//кодировка для консоли
+
 const configPath = join(app.getAppPath(), 'config.json');
 const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+
 
 
 function createWindow() {
@@ -24,6 +29,7 @@ function createWindow() {
 }
 
 app.whenReady().then(createWindow);
+app.whenReady().then(()=>{try{ createLauncherDirectory()}catch(e){console.log(e)}});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -40,4 +46,9 @@ app.on('activate', () => {
 
 ipcMain.handle('get-launcher-name', async () => {
   return config['launcher-name'];
-}); 
+});
+
+ipcMain.handle('run-minecraft', async () => {
+  runMinecraft();
+});
+

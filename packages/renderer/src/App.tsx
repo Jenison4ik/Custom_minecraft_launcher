@@ -4,6 +4,7 @@ declare global {
   interface Window {
     launcherAPI: {
       getLauncherName: () => Promise<string>;
+      runMinecraft: () => Promise<string>;
     };
   }
 }
@@ -18,7 +19,17 @@ function App() {
   return (
     <div>
       <h1>{launcherName}</h1>
-      <button>Click me</button>
+      <button
+        onClick={() => {
+          try {
+            window.launcherAPI.runMinecraft();
+          } catch (e) {
+            console.log(e);
+          }
+        }}
+      >
+        Запустить Minecraft
+      </button>
     </div>
   );
 }
