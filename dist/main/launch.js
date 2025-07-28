@@ -82,7 +82,7 @@ async function runMinecraft(params) {
         const classpath = getClasspath(LIBRARIES_DIR);
         // JVM + game args
         const jvmArgs = [
-            `-Xmx${RAM}`,
+            `-Xmx${RAM}M`,
             `-Djava.library.path=${NATIVES_DIR}`,
             "-cp", classpath
         ];

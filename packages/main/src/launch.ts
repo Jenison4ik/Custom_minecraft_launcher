@@ -55,7 +55,7 @@ export async function runMinecraft(params: LaunchArgs) {
   
     // JVM + game args
     const jvmArgs = [
-      `-Xmx${RAM}`,
+      `-Xmx${RAM}M`,
       `-Djava.library.path=${NATIVES_DIR}`,
       "-cp", classpath
     ];

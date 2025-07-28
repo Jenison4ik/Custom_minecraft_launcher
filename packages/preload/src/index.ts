@@ -2,7 +2,8 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 
 contextBridge.exposeInMainWorld('launcherAPI', {
-  getLauncherName: () => ipcRenderer.invoke('get-launcher-name'),
+  getConfigs: () => ipcRenderer.invoke('get-configs'),
   runMinecraft: () => ipcRenderer.invoke('run-minecraft'),
-  addToConfigs: (params: any[]) => ipcRenderer.invoke('add-to-configs', params)
+  addToConfigs: (params: any[]) => ipcRenderer.invoke('add-to-configs', params),
+  getMemSize:() => ipcRenderer.invoke('get-mem-size')
 });
