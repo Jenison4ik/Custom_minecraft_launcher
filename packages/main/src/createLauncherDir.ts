@@ -24,11 +24,11 @@ export function createLauncherDirectory() {
   try {
     if (!fs.existsSync(launcherDir)) {
       fs.mkdirSync(launcherDir, { recursive: true });
-      console.log('Создана директория лаунчера:', launcherDir);
+      process.stdout.write(`Created launcher directory: ${launcherDir}`);
     }
 
   } catch (err) {
-    console.error('Ошибка при создании директорий лаунчера:', err);
+    process.stdout.write(`Error when creating launcher directories: ${err}`);
   }
 
   return launcherDir;

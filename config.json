@@ -1,4 +1,6 @@
 {
-    "launcher-name": "Minecraft Launcher",
-    "minecraft-path-name":"copymc"
+  "launcher-name": "Minecraft Launcher",
+  "minecraft-path-name": "copymc",
+  "ram": "6G",
+  "nickname": "jenison4ik"
 }

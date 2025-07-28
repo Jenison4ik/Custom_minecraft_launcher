@@ -40,62 +40,70 @@ const fs = __importStar(require("fs"));
 const createLauncherDir_1 = require("./createLauncherDir"); // mcPath должен быть экспортирован без циклов
 const electron_1 = require("electron");
 const downloadJava_1 = require("./downloadJava");
-async function runMinecraft() {
-    const VERSION_ID = "1.20.1";
-    const NICKNAME = "Player123";
-    const JAVA_PATH = await (0, downloadJava_1.ensureJava17)(); //проверка и установка Java
-    const RAM = "2G";
-    // Пути
-    const BASE_DIR = path.join(electron_1.app.getPath('userData'), createLauncherDir_1.mcPath); // корень .minecraft
-    const VERSION_DIR = path.join(BASE_DIR, "versions", VERSION_ID);
-    const VERSION_JAR = path.join(VERSION_DIR, `${VERSION_ID}.jar`);
-    const LIBRARIES_DIR = path.join(BASE_DIR, "libraries");
-    const NATIVES_DIR = path.join(VERSION_DIR, "natives");
-    const ASSETS_DIR = path.join(BASE_DIR, "assets");
-    const ASSETS_INDEX = "1.20.1"; // или свой индекс
-    console.log("mcPath:", createLauncherDir_1.mcPath);
-    // Проверка наличия jar-файла
-    if (!fs.existsSync(VERSION_JAR)) {
-        console.error("Minecraft jar did not found:", VERSION_JAR);
-        return;
-    }
-    // Сборка classpath
-    function getClasspath(librariesDir) {
-        const jars = [];
-        function walk(d) {
-            for (const file of fs.readdirSync(d)) {
-                const full = path.join(d, file);
-                if (fs.statSync(full).isDirectory())
-                    walk(full);
-                else if (file.endsWith(".jar"))
-                    jars.push(full);
-            }
+async function runMinecraft(params) {
+    try {
+        const configPath = path.join(electron_1.app.getAppPath(), 'config.json');
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+        const VERSION_ID = params[0];
+        const NICKNAME = params[1];
+        const JAVA_PATH = await (0, downloadJava_1.ensureJava17)(); //проверка и установка Java
+        const RAM = params[2];
+        // Пути
+        const BASE_DIR = path.join(electron_1.app.getPath('userData'), createLauncherDir_1.mcPath); // корень .minecraft
+        const VERSION_DIR = path.join(BASE_DIR, "versions", VERSION_ID);
+        const VERSION_JAR = path.join(VERSION_DIR, `${VERSION_ID}.jar`);
+        const LIBRARIES_DIR = path.join(BASE_DIR, "libraries");
+        const NATIVES_DIR = path.join(VERSION_DIR, "natives");
+        const ASSETS_DIR = path.join(BASE_DIR, "assets");
+        // const ASSETS_INDEX = "1.20.1"; // или свой индекс
+        const ASSETS_INDEX = "5";
+        console.log("mcPath:", createLauncherDir_1.mcPath);
+        // Проверка наличия jar-файла
+        if (!fs.existsSync(VERSION_JAR)) {
+            console.error("Minecraft jar did not found:", VERSION_JAR);
+            return;
         }
-        walk(librariesDir);
-        jars.push(VERSION_JAR);
-        return jars.join(path.delimiter);
+        // Сборка classpath
+        function getClasspath(librariesDir) {
+            const jars = [];
+            function walk(d) {
+                for (const file of fs.readdirSync(d)) {
+                    const full = path.join(d, file);
+                    if (fs.statSync(full).isDirectory())
+                        walk(full);
+                    else if (file.endsWith(".jar"))
+                        jars.push(full);
+                }
+            }
+            walk(librariesDir);
+            jars.push(VERSION_JAR);
+            return jars.join(path.delimiter);
+        }
+        const classpath = getClasspath(LIBRARIES_DIR);
+        // JVM + game args
+        const jvmArgs = [
+            `-Xmx${RAM}`,
+            `-Djava.library.path=${NATIVES_DIR}`,
+            "-cp", classpath
+        ];
+        const mainClass = "net.minecraft.client.main.Main";
+        const gameArgs = [
+            "--username", NICKNAME,
+            "--version", VERSION_ID,
+            "--gameDir", BASE_DIR,
+            "--assetsDir", ASSETS_DIR,
+            "--assetIndex", ASSETS_INDEX,
+            "--accessToken", "0",
+            "--userType", "legacy"
+        ];
+        const args = [...jvmArgs, mainClass, ...gameArgs];
+        console.log(`Launching Minecraft from: ${BASE_DIR}`);
+        const mc = (0, child_process_1.spawn)(JAVA_PATH, args, { cwd: BASE_DIR });
+        mc.stdout.on("data", (data) => process.stdout.write(data));
+        mc.stderr.on("data", (data) => process.stderr.write(data));
+        mc.on("exit", (code) => console.log(`Minecraft ended with code: ${code}`));
     }
-    const classpath = getClasspath(LIBRARIES_DIR);
-    // JVM + game args
-    const jvmArgs = [
-        `-Xmx${RAM}`,
-        `-Djava.library.path=${NATIVES_DIR}`,
-        "-cp", classpath
-    ];
-    const mainClass = "net.minecraft.client.main.Main";
-    const gameArgs = [
-        "--username", NICKNAME,
-        "--version", VERSION_ID,
-        "--gameDir", BASE_DIR,
-        "--assetsDir", ASSETS_DIR,
-        "--assetIndex", ASSETS_INDEX,
-        "--accessToken", "0",
-        "--userType", "legacy"
-    ];
-    const args = [...jvmArgs, mainClass, ...gameArgs];
-    console.log(`🚀 Запуск Minecraft из ${BASE_DIR}`);
-    const mc = (0, child_process_1.spawn)(JAVA_PATH, args, { cwd: BASE_DIR });
-    mc.stdout.on("data", (data) => process.stdout.write(data));
-    mc.stderr.on("data", (data) => process.stderr.write(data));
-    mc.on("exit", (code) => console.log(`Minecraft ended with code: ${code}`));
+    catch (e) {
+        process.stdout.write('Error while launching minecraft, details: ' + e);
+    }
 }

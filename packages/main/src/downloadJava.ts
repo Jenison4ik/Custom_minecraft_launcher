@@ -7,7 +7,23 @@ import { app } from "electron";
 const javaBaseDir = path.join(app.getPath("userData"), "java");
 const java17Path = path.join(javaBaseDir, "temurin-17");
 
-// URL для Windows x64
+
+function downloadAnimation(text: string): () => void {
+  const downloadFrames = ['⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏'];
+  let i = 0;
+  const interval = setInterval(() => {
+    process.stdout.write(`\r${text}${downloadFrames[i % downloadFrames.length]}`);
+    i++;
+  }, 500);
+  
+  // Возвращаем функцию для остановки анимации
+  return () => {
+    clearInterval(interval);
+    process.stdout.write('\r\x1b[36m Done!\n');
+  };
+}
+
+//URL для Windows x64
 const JAVA_URL = "https://api.adoptium.net/v3/binary/version/jdk-17.0.10+7/windows/x64/jdk/hotspot/normal/eclipse?project=jdk";
 
 export async function ensureJava17(): Promise<string> {
@@ -17,7 +33,8 @@ export async function ensureJava17(): Promise<string> {
     return javaExecutable;
   }
 
-  console.log("Java 17 not found, downloading...");
+  process.stdout.write("Java 17 not found, downloading...\n");
+  const stopAnimation = downloadAnimation('Downloading Java 17');
 
   const zipPath = path.join(app.getPath("temp"), "java17.zip");
 
@@ -30,15 +47,16 @@ export async function ensureJava17(): Promise<string> {
     writer.on("error", reject);
   });
 
-  console.log("Unpacking Java...");
+  stopAnimation(); // Останавливаем анимацию загрузки
+  process.stdout.write("Unpacking Java...\n");
   await extract(zipPath, { dir: javaBaseDir });
 
-  // Найдём название извлечённой папки
+  //название извлечённой папки
   const extractedDir = fs.readdirSync(javaBaseDir).find(d => d.includes("jdk") || d.includes("jre"));
   if (!extractedDir) throw new Error("The extracted Java folder could not be found");
 
   fs.renameSync(path.join(javaBaseDir, extractedDir), java17Path);
 
-  console.log("Java 17 installed");
+  process.stdout.write("Java 17 installed\n");
   return javaExecutable;
 }

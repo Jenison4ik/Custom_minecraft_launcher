@@ -44,14 +44,28 @@ const extract_zip_1 = __importDefault(require("extract-zip"));
 const electron_1 = require("electron");
 const javaBaseDir = path.join(electron_1.app.getPath("userData"), "java");
 const java17Path = path.join(javaBaseDir, "temurin-17");
-// URL для Windows x64
+function downloadAnimation(text) {
+    const downloadFrames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+    let i = 0;
+    const interval = setInterval(() => {
+        process.stdout.write(`\r${text}${downloadFrames[i % downloadFrames.length]}`);
+        i++;
+    }, 500);
+    // Возвращаем функцию для остановки анимации
+    return () => {
+        clearInterval(interval);
+        process.stdout.write('\r\x1b[36m Done!\n');
+    };
+}
+//URL для Windows x64
 const JAVA_URL = "https://api.adoptium.net/v3/binary/version/jdk-17.0.10+7/windows/x64/jdk/hotspot/normal/eclipse?project=jdk";
 async function ensureJava17() {
     const javaExecutable = path.join(java17Path, "bin", "java.exe");
     if (fs.existsSync(javaExecutable)) {
         return javaExecutable;
     }
-    console.log("Java 17 not found, downloading...");
+    process.stdout.write("Java 17 not found, downloading...\n");
+    const stopAnimation = downloadAnimation('Downloading Java 17');
     const zipPath = path.join(electron_1.app.getPath("temp"), "java17.zip");
     const writer = fs.createWriteStream(zipPath);
     const response = await axios_1.default.get(JAVA_URL, { responseType: "stream" });
@@ -60,13 +74,14 @@ async function ensureJava17() {
         writer.on("finish", resolve);
         writer.on("error", reject);
     });
-    console.log("Unpacking Java...");
+    stopAnimation(); // Останавливаем анимацию загрузки
+    process.stdout.write("Unpacking Java...\n");
     await (0, extract_zip_1.default)(zipPath, { dir: javaBaseDir });
-    // Найдём название извлечённой папки
+    //название извлечённой папки
     const extractedDir = fs.readdirSync(javaBaseDir).find(d => d.includes("jdk") || d.includes("jre"));
     if (!extractedDir)
         throw new Error("The extracted Java folder could not be found");
     fs.renameSync(path.join(javaBaseDir, extractedDir), java17Path);
-    console.log("Java 17 installed");
+    process.stdout.write("Java 17 installed\n");
     return javaExecutable;
 }
