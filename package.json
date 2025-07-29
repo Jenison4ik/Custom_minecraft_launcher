@@ -48,6 +48,7 @@
     "files": [
       "dist/**/*",
       "node_modules/**/*"
-    ]
+    ],
+    "icon": "packages/renderer/static/icon.png"
   }
 }
