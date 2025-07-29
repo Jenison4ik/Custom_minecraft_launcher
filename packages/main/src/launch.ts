@@ -4,12 +4,13 @@ import * as fs from "fs";
 import { mcPath } from "./createLauncherDir"; // mcPath должен быть экспортирован без циклов
 import { app } from "electron";
 import { ensureJava17 } from "./downloadJava";
+import getConfig from "./getConfigPath";
 
 type LaunchArgs = [versionID: string, nickname: string, ram:string,]//надо добавить startOnServer: boolean
 
 export async function runMinecraft(params: LaunchArgs) {
   try{
-    const configPath = path.join(app.getAppPath(), 'config.json');
+    const configPath = getConfig();
     const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
   
   

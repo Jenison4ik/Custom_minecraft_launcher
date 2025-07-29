@@ -32,6 +32,9 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.runMinecraft = runMinecraft;
 const child_process_1 = require("child_process");
@@ -40,9 +43,10 @@ const fs = __importStar(require("fs"));
 const createLauncherDir_1 = require("./createLauncherDir"); // mcPath должен быть экспортирован без циклов
 const electron_1 = require("electron");
 const downloadJava_1 = require("./downloadJava");
+const getConfigPath_1 = __importDefault(require("./getConfigPath"));
 async function runMinecraft(params) {
     try {
-        const configPath = path.join(electron_1.app.getAppPath(), 'config.json');
+        const configPath = (0, getConfigPath_1.default)();
         const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
         const VERSION_ID = params[0];
         const NICKNAME = params[1];

@@ -7,9 +7,10 @@ const createLauncherDir_1 = require("./createLauncherDir");
 const electron_1 = require("electron");
 const launch_1 = require("./launch");
 const path_1 = require("path");
+const getConfigPath_1 = __importDefault(require("./getConfigPath"));
 const fs_1 = __importDefault(require("fs"));
 const os_1 = __importDefault(require("os"));
-const configPath = (0, path_1.join)(electron_1.app.getAppPath(), 'config.json');
+const configPath = (0, getConfigPath_1.default)();
 const config = JSON.parse(fs_1.default.readFileSync(configPath, 'utf-8'));
 const totalmem = Math.floor(os_1.default.totalmem() / 1048576);
 function addToConfig(configs) {

@@ -5,10 +5,11 @@ import * as fs from 'fs';
 import { version } from 'os';
 import * as path from 'path';
 import {join} from 'path';
+import getConfig from './getConfigPath';
 
 
 
-const configPath = join(app.getAppPath(), 'config.json');
+const configPath = getConfig();
 const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
 
 let pathName = config?.['minecraft-path-name'] || '.minecraft';

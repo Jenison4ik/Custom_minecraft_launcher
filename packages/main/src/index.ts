@@ -1,11 +1,13 @@
 import { createLauncherDirectory } from './createLauncherDir';
 import { app, BrowserWindow, ipcMain } from 'electron';
 import { runMinecraft } from './launch';
-import path, { join } from 'path';
+import { join } from 'path';
+import getConfig from './getConfigPath'
 import fs from 'fs';
 import os from 'os'
 
-const configPath = join(app.getAppPath(), 'config.json');
+
+const configPath = getConfig();
 const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
 
 const totalmem = Math.floor(os.totalmem() / 1048576);

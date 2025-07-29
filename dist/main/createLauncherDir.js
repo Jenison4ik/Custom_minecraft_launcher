@@ -32,14 +32,17 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.mcPath = void 0;
 exports.createLauncherDirectory = createLauncherDirectory;
 const electron_1 = require("electron");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
-const path_1 = require("path");
-const configPath = (0, path_1.join)(electron_1.app.getAppPath(), 'config.json');
+const getConfigPath_1 = __importDefault(require("./getConfigPath"));
+const configPath = (0, getConfigPath_1.default)();
 const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
 let pathName = config?.['minecraft-path-name'] || '.minecraft';
 exports.mcPath = pathName;
