@@ -5,6 +5,7 @@ import { mcPath } from "./createLauncherDir"; // mcPath должен быть э
 import { app } from "electron";
 import { ensureJava17 } from "./downloadJava";
 import getConfig from "./getConfigPath";
+import sendError from "./sendError";
 
 type LaunchArgs = [versionID: string, nickname: string, ram:string,]//надо добавить startOnServer: boolean
 
@@ -31,7 +32,7 @@ export async function runMinecraft(params: LaunchArgs) {
     console.log("mcPath:", mcPath);
     // Проверка наличия jar-файла
     if (!fs.existsSync(VERSION_JAR)) {
-      console.error("Minecraft jar did not found:", VERSION_JAR);
+      sendError("Minecraft jar did not found: "+ VERSION_JAR);
       return;
     }
     
@@ -81,6 +82,6 @@ export async function runMinecraft(params: LaunchArgs) {
     mc.stderr.on("data", (data: Buffer) => process.stderr.write(data));
     mc.on("exit", (code: number) => console.log(`Minecraft ended with code: ${code}`));
   }catch(e){
-    process.stdout.write('Error while launching minecraft, details: '+ e)
+    sendError('Error while launching minecraft, details: '+ e)
   }
 }

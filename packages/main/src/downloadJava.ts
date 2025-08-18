@@ -3,6 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 import extract from "extract-zip";
 import { app } from "electron";
+import sendError from "./sendError";
 
 const javaBaseDir = path.join(app.getPath("userData"), "java");
 const java17Path = path.join(javaBaseDir, "temurin-17");
@@ -32,7 +33,7 @@ export async function ensureJava17(): Promise<string> {
   if (fs.existsSync(javaExecutable)) {
     return javaExecutable;
   }
-
+  sendError("Java 17 not found, downloading...");
   process.stdout.write("Java 17 not found, downloading...\n");
   const stopAnimation = downloadAnimation('Downloading Java 17');
 

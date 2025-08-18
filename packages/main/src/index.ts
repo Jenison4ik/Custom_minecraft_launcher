@@ -17,6 +17,8 @@ type Config = {
   value: any;
 }
 
+
+
 function addToConfig(configs: Config[] ){
   try{
     const configJson = fs.readFileSync(configPath, 'utf-8');
@@ -97,4 +99,3 @@ try{
   process.stdout.write(`Can't save configs at config.json error: ${e}`);
 }
 });
-

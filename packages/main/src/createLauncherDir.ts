@@ -6,6 +6,7 @@ import { version } from 'os';
 import * as path from 'path';
 import {join} from 'path';
 import getConfig from './getConfigPath';
+import sendError from './sendError';
 
 
 
@@ -29,7 +30,7 @@ export function createLauncherDirectory() {
     }
 
   } catch (err) {
-    process.stdout.write(`Error when creating launcher directories: ${err}`);
+    sendError(`Error when creating launcher directories: ${err}`);
   }
 
   return launcherDir;

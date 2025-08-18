@@ -14,6 +14,7 @@ declare global {
       runMinecraft: () => Promise<string>;
       addToConfigs: (params: Config[]) => Promise<void>;
       getMemSize: ()=> Promise<number>; 
+      onError: (callback: (message: string) => void) => void;
     };
   }
 }
@@ -42,6 +43,16 @@ function App() {
       setUsingmem(configs.ram === undefined || configs.ram > totalmem ? Math.floor(totalmem*0.6) : configs.ram)
     }
   },[configs, totalmem])
+  useEffect(() => {
+    // Регистрируем обработчик ошибок только один раз при монтировании компонента
+    window.launcherAPI.onError((message) => {
+      console.log('pizda');
+      
+    });
+    return () => { // Отменяем подписку на ошибки при размонтировании компонента
+      window.launcherAPI.onError(() => {});
+    }
+  }, []);
   
   if (configs === null || totalmem === undefined) {
     // Можно показать спиннер или просто ничего не рендерить
