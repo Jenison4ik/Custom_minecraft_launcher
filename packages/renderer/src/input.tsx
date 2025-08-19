@@ -1,11 +1,11 @@
-interface InputText {
+interface InputTextProps {
    placeholder: string,
    onChange?: (value:string) => void,
    value: string,
    inputRef?: React.Ref<HTMLInputElement>
 }
 
- export default function InputText({placeholder, value, onChange, inputRef}: InputText){
+ export default function InputText({placeholder, value, onChange, inputRef}: InputTextProps){
     return (<>
        <input
       ref={inputRef}

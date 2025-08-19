@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import InputText from './input'
 import InputRange from './inputRange';
+import ErrorToasts from './ErrorToasts';
+import './styles/App.scss';
 
 type Config = {
   name: string,
@@ -23,10 +25,11 @@ function App() {
   const [configs, setConfigs] = useState<{ [key: string]: any } | null>(null);
   const [totalmem,setTotalmem] = useState<number>();
   const [usingmem, setUsingmem] = useState<number>();
+  const [errors, setErrors] = useState<{id:number; message: string}[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const rangeRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
+  useEffect(() => {//Получение config.json
     window.launcherAPI.getConfigs()
       .then((data) => setConfigs(data))
       .catch((e) => {
@@ -43,23 +46,28 @@ function App() {
       setUsingmem(configs.ram === undefined || configs.ram > totalmem ? Math.floor(totalmem*0.6) : configs.ram)
     }
   },[configs, totalmem])
-  useEffect(() => {
-    // Регистрируем обработчик ошибок только один раз при монтировании компонента
+  useEffect(() => {//Обработчик ошибок
     window.launcherAPI.onError((message) => {
-      console.log('pizda');
-      
+      const newErrorId = Date.now();
+      setErrors((prevErrors) => [{ id: newErrorId, message }, ...prevErrors]);
+      console.error("Error received from API: ", message);
+
+
+      setTimeout(() => {
+        setErrors((prevErrors) => prevErrors.filter((error) => error.id !== newErrorId));
+      }, 5000)
     });
     return () => { // Отменяем подписку на ошибки при размонтировании компонента
       window.launcherAPI.onError(() => {});
     }
   }, []);
   
-  if (configs === null || totalmem === undefined) {
-    // Можно показать спиннер или просто ничего не рендерить
+  if (configs === null || totalmem === undefined) {//Отображение загрузки пока ожидается config.json
     return <div>Загрузка...</div>;
   }
   return (
     <div>
+      <ErrorToasts errors={errors}/>
       <h1>{configs['launcher-name']}</h1>
       <button
         onClick={() => {
