@@ -40,6 +40,7 @@ export async function ensureJava17(): Promise<string> {
   }
   sendError("Java 17 not found, downloading...");
   process.stdout.write("Java 17 not found, downloading...\n");
+  sendDownloadStatus("Starting Java 17 download...", 0, true);
   stopAnimation = downloadAnimation('Downloading Java 17');
 
   const zipPath = path.join(app.getPath("temp"), "java17.zip");
@@ -52,9 +53,9 @@ export async function ensureJava17(): Promise<string> {
       const { loaded, total } = progressEvent;
       if (total) {
         const percent = Math.round((loaded * 100) / total);
-        sendDownloadStatus(`Downloading Java 17: ${percent}%`, percent);
+        sendDownloadStatus(`Downloading Java 17: `, percent, true);
       } else {
-        sendDownloadStatus(`Downloaded Java 17: ${loaded} bytes`, 100);
+        sendDownloadStatus(`Downloaded Java 17: ${loaded} bytes`, 100, false);
       }
     }
    });
@@ -67,6 +68,7 @@ export async function ensureJava17(): Promise<string> {
   });
 
   stopAnimation(); // Останавливаем анимацию загрузки
+  sendDownloadStatus("Download completed, unpacking Java...", 100, true);
   process.stdout.write("Unpacking Java...\n");
   await extract(zipPath, { dir: javaBaseDir });
 
@@ -76,6 +78,7 @@ export async function ensureJava17(): Promise<string> {
 
   fs.renameSync(path.join(javaBaseDir, extractedDir), java17Path);
 
+  sendDownloadStatus("Java 17 installation completed!", 100, false);
   process.stdout.write("Java 17 installed\n");
   return javaExecutable;
   } catch (e: unknown) {

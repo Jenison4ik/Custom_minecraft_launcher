@@ -3,6 +3,7 @@ import InputText from './input'
 import InputRange from './inputRange';
 import ErrorToasts from './ErrorToasts';
 import './styles/App.scss';
+import DownloadBar from './DownloadBar';
 
 type Config = {
   name: string,
@@ -17,7 +18,7 @@ declare global {
       addToConfigs: (params: Config[]) => Promise<void>;
       getMemSize: ()=> Promise<number>; 
       onError: (callback: (message: string) => void) => void;
-      onDownloadStatus: (callback: (message: string, progress: number) => void) => void;
+      onDownloadStatus: (callback: (message: string, progress: number, isDownloading:boolean) => void) => void;
     };
   }
 }
@@ -27,6 +28,7 @@ function App() {
   const [totalmem,setTotalmem] = useState<number>();
   const [usingmem, setUsingmem] = useState<number>();
   const [errors, setErrors] = useState<{id:number; message: string, isFade:boolean}[]>([]);
+  const [download, setDownload] = useState<{message: string, progress:number, isDownloading: boolean}>({message: '', progress: 0, isDownloading: false});
   const inputRef = useRef<HTMLInputElement>(null);
   const rangeRef = useRef<HTMLInputElement>(null);
 
@@ -46,7 +48,19 @@ function App() {
     if (configs && totalmem) {
       setUsingmem(configs.ram === undefined || configs.ram > totalmem ? Math.floor(totalmem*0.6) : configs.ram)
     }
-  },[configs, totalmem])
+  },[configs, totalmem]);
+  useEffect(()=>{//Обработчик активных загрузок
+    const handleDownloadStatus = (message: string, progress: number, isDownloading: boolean) => {
+      setDownload({message: message, progress: progress, isDownloading: isDownloading})
+    };
+    
+    window.launcherAPI.onDownloadStatus(handleDownloadStatus);
+
+    return () => {
+      // Отменяем подписку на загрузки при размонтировании компонента
+      window.launcherAPI.onDownloadStatus(() => {});
+    };
+  }, [])
   useEffect(() => {//Обработчик ошибок
     window.launcherAPI.onError((message) => {
       const newErrorId = Date.now();
@@ -77,6 +91,7 @@ function App() {
   return (
     <div>
       <ErrorToasts errors={errors}/>
+      <DownloadBar message={download.message} progress={download.progress} isDownloading={download.isDownloading}/>
       <h1>{configs['launcher-name']}</h1>
       <button
         onClick={() => {

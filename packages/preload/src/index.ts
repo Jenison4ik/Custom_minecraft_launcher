@@ -9,7 +9,7 @@ contextBridge.exposeInMainWorld('launcherAPI', {
   onError: (callback: (message: string) => void) => {
     ipcRenderer.on('show-error-toast', (event, message) => callback(message));
   },
-  onDownloadStatus: (callback: (message: string, progress: number) => void) => {
-    ipcRenderer.on('show-download-status', (event, message, progress) => callback(message, progress));
+  onDownloadStatus: (callback: (message: string, progress: number, isDownloading: boolean) => void) => {
+    ipcRenderer.on('show-download-status', (event, message, progress, isDownloading) => callback(message, progress, isDownloading));
   }
 });
