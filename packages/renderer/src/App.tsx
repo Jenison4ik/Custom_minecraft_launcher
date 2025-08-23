@@ -17,6 +17,7 @@ declare global {
       addToConfigs: (params: Config[]) => Promise<void>;
       getMemSize: ()=> Promise<number>; 
       onError: (callback: (message: string) => void) => void;
+      onDownloadStatus: (callback: (message: string, progress: number) => void) => void;
     };
   }
 }
@@ -25,7 +26,7 @@ function App() {
   const [configs, setConfigs] = useState<{ [key: string]: any } | null>(null);
   const [totalmem,setTotalmem] = useState<number>();
   const [usingmem, setUsingmem] = useState<number>();
-  const [errors, setErrors] = useState<{id:number; message: string}[]>([]);
+  const [errors, setErrors] = useState<{id:number; message: string, isFade:boolean}[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const rangeRef = useRef<HTMLInputElement>(null);
 
@@ -49,13 +50,21 @@ function App() {
   useEffect(() => {//Обработчик ошибок
     window.launcherAPI.onError((message) => {
       const newErrorId = Date.now();
-      setErrors((prevErrors) => [{ id: newErrorId, message }, ...prevErrors]);
+      setErrors((prevErrors) => [{ id: newErrorId, message, isFade:false }, ...prevErrors]);
       console.error("Error received from API: ", message);
 
 
       setTimeout(() => {
-        setErrors((prevErrors) => prevErrors.filter((error) => error.id !== newErrorId));
-      }, 5000)
+        setErrors((prevErrors) =>{
+          return prevErrors.map((error) => {
+            if (error.id === newErrorId) {
+              return { ...error, isFade: true };
+            }
+            return error;
+          });
+        });
+
+      setTimeout(()=>{setErrors((prevErrors) => prevErrors.filter((error) => error.id !== newErrorId));},700)}, 5000)
     });
     return () => { // Отменяем подписку на ошибки при размонтировании компонента
       window.launcherAPI.onError(() => {});

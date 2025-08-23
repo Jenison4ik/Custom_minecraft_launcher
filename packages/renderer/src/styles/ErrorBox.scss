@@ -1,3 +1,11 @@
+*{
+    font-family: sans-serif;
+}
+h2{
+    margin: 0;
+    padding: 0;
+    font-size: 1.2rem;
+}
 .error-box{
     //position: relative;
     box-sizing: border-box;
@@ -7,11 +15,25 @@
     background-color: rgb(255, 198, 198);
     padding: 20px 5px;
     border-radius: 10px;
-    max-width: 20vw;
+    width:20vw;
+    min-width: 200px;
     height: auto;
+    flex: 0 0 auto;
+    opacity: 0.7;
+    &:hover{
+        opacity: 1;
+    }
     p{
         margin: 0;
         padding: 0;
         word-break: break-all;
     }
+}
+.fade{
+    opacity: 0;
+    transition: 0.7s ease-out;
+    -webkit-transition: 0.7s ease-out;
+    -moz-transition: 0.7s ease-out;
+    -ms-transition: 0.7s ease-out;
+    -o-transition: 0.7s ease-out;
 }

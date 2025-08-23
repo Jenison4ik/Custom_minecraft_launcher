@@ -1,7 +1,8 @@
 .error-toasts{
     position: fixed;
     display: flex;
-    width: auto;
+    overflow: visible;
+    width: 1px;
     height: auto;
     right: 0;
     top: 0;
