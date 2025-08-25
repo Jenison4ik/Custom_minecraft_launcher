@@ -9,7 +9,7 @@ export default function ErrorToasts() {
 
     useEffect(() => {//Обработчик ошибок
         window.launcherAPI.onError((message) => {
-          const newErrorId = Date.now();
+          const newErrorId = Math.random();
           setErrors((prevErrors) => [{ id: newErrorId, message, isFade:false }, ...prevErrors]);
           console.error("Error received from API: ", message);
     

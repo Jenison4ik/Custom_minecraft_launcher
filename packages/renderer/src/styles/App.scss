@@ -1,0 +1,18 @@
+$controls-height: 80px;
+
+html{
+    font-size: 16px;
+}
+.controls{
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: $controls-height;
+    display: flex;
+    padding: 10px 20px;
+    background-color: #e0e0e0;
+    display: flex;
+    gap: 10px;
+    z-index: 1000;
+}

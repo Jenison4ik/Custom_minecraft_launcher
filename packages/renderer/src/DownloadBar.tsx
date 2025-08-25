@@ -18,7 +18,7 @@ export default function DownloadBar() {
     }, []);
     return (
         <div className={`download-bar ${download.isDownloading ? 'show' : ''}`}>
-            <div className="download-progress-bar" style={{ width: `${download.progress}%` }}></div>
+            <div className="download-progress-bar" style={{ width: `${download.progress}%` }}><div className='download-animation'></div></div>
             <p className="download-message">{download.message} — {download.progress}%</p>
         </div>
     );

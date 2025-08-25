@@ -1,15 +1,16 @@
 @use './reset.scss' as *;
+@use './App.scss' as *;
 
 .download-bar{
     position: fixed;
     overflow: hidden;
     border-radius: 5px 5px 0 0;
     background-color: rgb(231, 231, 231);
-    bottom: 0;
+    bottom: $controls-height;
     left: 0;
     right: 0;
     height: 40px;
-    z-index: 1000;
+    z-index: 999;
     display: flex;
     align-items: center;
     justify-content: flex-start;
@@ -33,9 +34,32 @@
     background-color: rgb(88, 255, 91);
     margin: 0;
     z-index: -1;
-    transition: width 0.3s ease-in-out;
+    transition: width 0.8s ease-out;
+    overflow: hidden;
+}
+
+.download-animation{
+    background-color: #fff;
+    position: absolute;
+    bottom: -20px;
+    top: -20px;
+    width: 30px;
+    filter: blur(13px);
+    transform: rotate(-30deg);
+    left: 0;
+    animation: download-animation 1.5s linear 0s infinite normal backwards;
 }
 
 .show{
     transform: translate(0,0);
+}
+
+
+@keyframes download-animation {
+    0%{
+        left:-60px;
+    }
+    100%{
+        left: 110%;
+    }
 }

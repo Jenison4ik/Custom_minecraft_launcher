@@ -1,0 +1,22 @@
+.load-btn{
+    font-size: 1.5rem;
+    font-weight: bolder;
+    color: #fff;
+    background-color: #ff5454;
+    padding: 10px 20px;
+    border-radius: 5px;
+    transition: all ease-out 0.3s;
+    box-shadow: 3px 3px 5px #b4b4b4;
+    min-width: 230px;
+    &:disabled{
+        filter: brightness(0.7);
+    }
+    &:hover{
+        background-color: #b32d2d;
+        cursor: pointer;
+        &:disabled{
+            background-color: #ff5454;
+            cursor:default;
+        }
+    }
+}

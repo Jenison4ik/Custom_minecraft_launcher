@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
-import InputText from './input'
-import InputRange from './inputRange';
+import InputText from './inputText'
+import InputRam from './inputRam';
 import ErrorToasts from './ErrorToasts';
 import './styles/App.scss';
 import DownloadBar from './DownloadBar';
+import LaunchButton from './LaunchButton';
 
 type Config = {
   name: string,
@@ -19,6 +20,7 @@ declare global {
       getMemSize: ()=> Promise<number>; 
       onError: (callback: (message: string) => void) => void;
       onDownloadStatus: (callback: (message: string, progress: number, isDownloading:boolean) => void) => void;
+      onMinecraft: (callback:(status:boolean)=> void) => void;
     };
   }
 }
@@ -28,7 +30,6 @@ function App() {
   const [totalmem,setTotalmem] = useState<number>();
   const [usingmem, setUsingmem] = useState<number>();
   const inputRef = useRef<HTMLInputElement>(null);
-  const rangeRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {//Получение config.json
     window.launcherAPI.getConfigs()
@@ -49,6 +50,17 @@ function App() {
   },[configs, totalmem]);
 
 
+  async function handleRunMinecraft() : Promise<void> {
+    try {
+      const nickname = inputRef.current?.value ?? 'Steve';
+      window.launcherAPI.addToConfigs([{ name: 'nickname', value: nickname },{name:'ram',value:usingmem}]);
+      await window.launcherAPI.runMinecraft();
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
+
   if (configs === null || totalmem === undefined) {//Отображение загрузки пока ожидается config.json
     return <div>Загрузка...</div>;
   }
@@ -57,27 +69,19 @@ function App() {
       <ErrorToasts/>
       <DownloadBar/>
       <h1>{configs['launcher-name']}</h1>
-      <button
-        onClick={() => {
-          try {
-
-            const nickname = inputRef.current?.value ?? 'Steve';
-            window.launcherAPI.addToConfigs([{ name: 'nickname', value: nickname },{name:'ram',value:usingmem}]);
-            window.launcherAPI.runMinecraft();
-          } catch (e) {
-            console.log(e);
-          }
-        }}
-      >
-        Запустить Minecraft
-      </button>
-      <InputText
-        placeholder={'Nickname'}
-        value={configs['nickname'] ?? 'Steve'}
-        inputRef={inputRef}
-      />
-      <InputRange defVal={configs.ram === undefined || configs.ram > totalmem ? Math.floor(totalmem*0.6) : configs.ram} maxVal={totalmem} inputRef={rangeRef} onChange={(e)=> setUsingmem(e)}/>
+      <div className='controls'>
+        
+        <LaunchButton onClick={handleRunMinecraft}/>
+        <InputText
+          placeholder={'Nickname'}
+          value={configs['nickname'] ?? 'Steve'}
+          inputRef={inputRef}
+        />
+        
+      </div>
+      <InputRam defVal={ typeof configs.ram !== 'number' || configs.ram > totalmem ? Math.floor(totalmem*0.6) : configs.ram} maxVal={totalmem} onChange={(e)=> setUsingmem(e)}/>
       <p className='ram'>{usingmem} MB</p>
+      
     </div>
   );
 }
