@@ -39,7 +39,6 @@ export async function ensureJava17(): Promise<string> {
     return javaExecutable;
   }
   sendError("Java 17 not found, downloading...");
-  process.stdout.write("Java 17 not found, downloading...\n");
   sendDownloadStatus("Starting Java 17 download...", 0, true);
   stopAnimation = downloadAnimation('Downloading Java 17');
 
@@ -53,7 +52,7 @@ export async function ensureJava17(): Promise<string> {
       const { loaded, total } = progressEvent;
       if (total) {
         const percent = Math.round((loaded * 100) / total);
-        sendDownloadStatus(`Downloading Java 17: `, percent, true);
+        sendDownloadStatus(`Downloading Java 17: loaded ${Math.floor(loaded/1048576)} MB from ${Math.floor(total/1048576)} MB`, percent, true);
       } else {
         sendDownloadStatus(`Downloaded Java 17: ${loaded} bytes`, 100, false);
       }

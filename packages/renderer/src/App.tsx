@@ -27,8 +27,6 @@ function App() {
   const [configs, setConfigs] = useState<{ [key: string]: any } | null>(null);
   const [totalmem,setTotalmem] = useState<number>();
   const [usingmem, setUsingmem] = useState<number>();
-  const [errors, setErrors] = useState<{id:number; message: string, isFade:boolean}[]>([]);
-  const [download, setDownload] = useState<{message: string, progress:number, isDownloading: boolean}>({message: '', progress: 0, isDownloading: false});
   const inputRef = useRef<HTMLInputElement>(null);
   const rangeRef = useRef<HTMLInputElement>(null);
 
@@ -49,49 +47,15 @@ function App() {
       setUsingmem(configs.ram === undefined || configs.ram > totalmem ? Math.floor(totalmem*0.6) : configs.ram)
     }
   },[configs, totalmem]);
-  useEffect(()=>{//Обработчик активных загрузок
-    const handleDownloadStatus = (message: string, progress: number, isDownloading: boolean) => {
-      setDownload({message: message, progress: progress, isDownloading: isDownloading})
-    };
-    
-    window.launcherAPI.onDownloadStatus(handleDownloadStatus);
-
-    return () => {
-      // Отменяем подписку на загрузки при размонтировании компонента
-      window.launcherAPI.onDownloadStatus(() => {});
-    };
-  }, [])
-  useEffect(() => {//Обработчик ошибок
-    window.launcherAPI.onError((message) => {
-      const newErrorId = Date.now();
-      setErrors((prevErrors) => [{ id: newErrorId, message, isFade:false }, ...prevErrors]);
-      console.error("Error received from API: ", message);
 
 
-      setTimeout(() => {
-        setErrors((prevErrors) =>{
-          return prevErrors.map((error) => {
-            if (error.id === newErrorId) {
-              return { ...error, isFade: true };
-            }
-            return error;
-          });
-        });
-
-      setTimeout(()=>{setErrors((prevErrors) => prevErrors.filter((error) => error.id !== newErrorId));},700)}, 5000)
-    });
-    return () => { // Отменяем подписку на ошибки при размонтировании компонента
-      window.launcherAPI.onError(() => {});
-    }
-  }, []);
-  
   if (configs === null || totalmem === undefined) {//Отображение загрузки пока ожидается config.json
     return <div>Загрузка...</div>;
   }
   return (
     <div>
-      <ErrorToasts errors={errors}/>
-      <DownloadBar message={download.message} progress={download.progress} isDownloading={download.isDownloading}/>
+      <ErrorToasts/>
+      <DownloadBar/>
       <h1>{configs['launcher-name']}</h1>
       <button
         onClick={() => {
