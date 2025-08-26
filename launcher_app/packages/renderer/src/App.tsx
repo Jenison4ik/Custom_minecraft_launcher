@@ -5,6 +5,7 @@ import ErrorToasts from './ErrorToasts';
 import './styles/App.scss';
 import DownloadBar from './DownloadBar';
 import LaunchButton from './LaunchButton';
+// import folderIcon from './assets/file.png'
 
 type Config = {
   name: string,
@@ -16,6 +17,7 @@ declare global {
     launcherAPI: {
       getConfigs: () => Promise<{ [key: string]: any }>;
       runMinecraft: () => Promise<string>;
+      openLauncherDir: () => Promise<void>,
       addToConfigs: (params: Config[]) => Promise<void>;
       getMemSize: ()=> Promise<number>; 
       onError: (callback: (message: string) => void) => void;
@@ -27,7 +29,7 @@ declare global {
 
 function App() {
   const [configs, setConfigs] = useState<{ [key: string]: any } | null>(null);
-  const [totalmem,setTotalmem] = useState<number>();
+  const [totalmem,setTotalmem] = useState<number>(0);
   const [usingmem, setUsingmem] = useState<number>();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -41,7 +43,6 @@ function App() {
   }, []);
   useEffect(()=>{
     window.launcherAPI.getMemSize().then((data)=>{setTotalmem(data)})
-    
   }, [])
   useEffect(()=>{ //Задать текущее значение по памяти из config.json
     if (configs && totalmem) {
@@ -53,7 +54,7 @@ function App() {
   async function handleRunMinecraft() : Promise<void> {
     try {
       const nickname = inputRef.current?.value ?? 'Steve';
-      window.launcherAPI.addToConfigs([{ name: 'nickname', value: nickname },{name:'ram',value:usingmem}]);
+      window.launcherAPI.addToConfigs([{ name: 'nickname', value: nickname },{name:'ram',value:usingmem ?? (totalmem < 2048 ? totalmem : 2048) }]);
       await window.launcherAPI.runMinecraft();
     } catch (e) {
       console.log(e);
@@ -77,7 +78,7 @@ function App() {
           value={configs['nickname'] ?? 'Steve'}
           inputRef={inputRef}
         />
-        
+        <button title='Open Folder' onClick={window.launcherAPI.openLauncherDir} className='folder-button'> <img src='./folder.svg' alt="папка" /></button>
       </div>
       <InputRam defVal={ typeof configs.ram !== 'number' || configs.ram > totalmem ? Math.floor(totalmem*0.6) : configs.ram} maxVal={totalmem} onChange={(e)=> setUsingmem(e)}/>
       <p className='ram'>{usingmem} MB</p>

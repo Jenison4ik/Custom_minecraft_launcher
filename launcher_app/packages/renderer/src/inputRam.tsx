@@ -7,13 +7,7 @@ interface InputRangeProps {
   onChange: (e:number)=> void;
 }
 export default function InputRange({ maxVal, inputRef, defVal, onChange }: InputRangeProps) {
-    const [val,setVal] = useState(defVal);
-
-    function handleVal():void{
-      if(typeof val !== 'number'){
-        setVal(minVal);
-      }
-    }
+    const [val,setVal] = useState(defVal.toString());
 
     const minVal = maxVal < 2048? Math.floor(maxVal*0.5) : 2048;
     return (
@@ -26,40 +20,38 @@ export default function InputRange({ maxVal, inputRef, defVal, onChange }: Input
           value={val} 
           step='1'
           onChange={(e)=> {
-            setVal(e.target.valueAsNumber);
+            setVal(e.target.value);
             onChange(e.target.valueAsNumber)
           }}
           />
         <input
-          type="number"
+          type="text"
           min={minVal} 
           max={maxVal} 
           value={val} 
           step='1'
           onChange={(e)=> {
-            console.log(e.target.value)
-            if(e.target.value.length === 0){
-              setVal(0)
-              return
+            let target = e.target.value
+            
+            target = target.replace(/\D/g, "");
+
+            if(target.length > 0){
+              target = String(parseInt(target,10))
             }
-            if(e.target.value[0] === '0' && e.target.value.length > 1){
-              setVal(parseInt(e.target.value,10)+ 1);
-              return
-            }
-            setVal(e.target.valueAsNumber)
+            setVal(target)
           }}
           onBlur={(e)=> {
-            const value = e.target.valueAsNumber;
-            if(value < minVal || !value){
-            setVal(minVal);
+            const value = parseInt(val,10);
+            if(value < minVal || typeof value !== 'number'){
+            setVal(minVal.toString());
             onChange(minVal)
             return
             }else if(value > maxVal){
-            setVal(maxVal);
+            setVal(maxVal.toString());
             onChange(maxVal)
             return
             }
-            onChange(e.target.valueAsNumber);
+            onChange(value);
           }}
         />
         </>

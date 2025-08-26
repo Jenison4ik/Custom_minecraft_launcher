@@ -1,6 +1,6 @@
 {
   "name": "mc-launcher",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Minecraft Launcher",
   "main": "dist/main/index.js",
   "scripts": {
@@ -48,7 +48,8 @@
     },
     "files": [
       "dist/**/*",
-      "node_modules/**/*"
+      "node_modules/**/*",
+      "packages/renderer/static/**/*"
     ],
     "icon": "packages/renderer/static/icon.png"
   }

@@ -5,7 +5,7 @@ import { join } from 'path';
 import getConfig from './getConfigPath'
 import fs from 'fs';
 import os from 'os'
-
+import { openLauncherDir } from './openLauncherDir';
 
 const configPath = getConfig();
 const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
@@ -39,9 +39,11 @@ function addToConfig(configs: Config[] ){
 function createWindow() {
   process.stdout.write(join(__dirname, '../renderer/icon.png'));
   const win = new BrowserWindow({
+    minWidth: 700,
+    minHeight:400,
     width: 1000,
     height: 650,
-    icon: join(__dirname, '../renderer/icon.ico'), // путь к вашей иконке
+    icon: join(__dirname, '../renderer/icon.ico'),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -99,3 +101,6 @@ try{
   process.stdout.write(`Can't save configs at config.json error: ${e}`);
 }
 });
+ipcMain.handle('open-launcher-dir',()=>{
+  openLauncherDir();
+})
