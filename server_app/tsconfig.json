@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "rootDir": "./src", // Корневая директория исходных файлов
+    "outDir": "./dist", // Папка для скомпилированных файлов
+    "module": "nodenext",
+    "target": "esnext",
+    "lib": ["esnext"],
+    "types": ["node"],
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+    "strict": true,
+    "skipLibCheck": true
+  },
+  "include": ["src"], // Указываем файлы для компиляции
+  "exclude": ["node_modules", "dist"] // Исключаем ненужные папки
+}
