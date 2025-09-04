@@ -7,6 +7,7 @@ import { ensureJava17 } from "./downloadJava";
 import getConfig from "./getConfigPath";
 import sendError from "./sendError";
 import sendDownloadStatus from "./sendDownloadStatus";
+import generateManifest from "./generateManifest";
 
 type LaunchArgs = [versionID: string, nickname: string, ram:string,]//надо добавить startOnServer: boolean
 
@@ -37,6 +38,10 @@ export async function runMinecraft(params: LaunchArgs) {
     const versionJsonPath = path.join(VERSION_DIR, `${VERSION_ID}.json`);
     const versionJson = JSON.parse(fs.readFileSync(versionJsonPath, 'utf-8'));
     const ASSETS_INDEX = versionJson.assets;
+
+    //Создание и проверка игровых файлов
+    await generateManifest(".minecraft")
+
 
     // Проверка наличия jar-файла
     if (!fs.existsSync(VERSION_JAR)) {
