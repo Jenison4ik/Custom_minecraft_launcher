@@ -17,6 +17,8 @@ export function createLauncherDirectory() {
     if (!fs.existsSync(launcherDir)) {
       fs.mkdirSync(launcherDir, { recursive: true });
       process.stdout.write(`Created launcher directory: ${launcherDir}`);
+    }else{
+      process.stdout.write(`\nLauncher directory already exists: ${launcherDir}\n`);
     }
 
   } catch (err) {
