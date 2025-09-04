@@ -24,28 +24,13 @@ const app = express();
 const upload = multer({ dest: 'uploads/' });
 // Получаем переменные окружения
 const PORT: number = parseInt(process.env.PORT || '8080', 10);
-const GAME_DIR = process.env.GAME_DIR || path.resolve("game_dir");
 
-function getFiles(dir: string): string[] {
-  let results: string[] = [];
-  const list = fs.readdirSync(dir);
-  for (const file of list) {
-    const filePath = path.join(dir, file);
-    const stat = fs.statSync(filePath);
-    if (stat.isDirectory()) {
-      results = results.concat(getFiles(filePath));
-    } else {
-      results.push(filePath);
-    }
-  }
-  return results;
-}
-
+const GAME_DIR = path.join(process.cwd(), "game");
 
 
 // Пример маршрута
 app.get('/', (req: Request, res: Response) => {
-  res.send('Hello, Minecraft Launcher!');
+  res.send('Hello, from Jenison`s MC Launcher!');
 });
 
 app.post("/upload", upload.single("file"), uploadFile, generateManifest,(req,res,next)=>{
@@ -86,6 +71,6 @@ app.get("/downloadGame",downloadGame);
 app.post("/uploadGame", upload.single('file') ,uploadGame);
 
 // Запуск сервера
-app.listen(PORT, () => {
+app.listen(PORT,"0.0.0.0", () => {
   console.log(`🚀 Server is running on http://localhost:${PORT}`);
 });

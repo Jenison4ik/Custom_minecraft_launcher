@@ -1,34 +1,48 @@
-version: '3.8'
+version: "3.9"  # Версия Docker Compose, 3.9 — современная и поддерживает все нужные возможности
 
 services:
   app:
     build: .
-    container_name: node_app
+    container_name: server_app
     restart: always
+    env_file:
+      - .env          # Подключаем переменные окружения из файла .env
     environment:
-      - PORT=8080
-      - SECRET_KEY=e592ff6aa0a73280c04c75662926a215
-      # другие переменные окружения
+      - PORT=${PORT}
+      - SECRET_KEY=${SECRET_KEY}
     expose:
-      - "8080"
+      - "${PORT}" 
     networks:
-      - appnet
+      - webnet
 
   nginx:
     image: nginx:latest
     container_name: nginx_proxy
     restart: always
     ports:
-      - "80:80"
-      - "443:443"
+      - "80:80"       # HTTP для первоначальной выдачи сертификата
+      - "443:443"     # HTTPS
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      # если нужен SSL, добавь volume с сертификатами
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro   # Конфигурация Nginx
+      # - ./nginx/certbot/conf:/etc/letsencrypt  # Сертификаты Let's Encrypt
+      # - ./nginx/certbot/www:/var/www/certbot   # Временная папка для проверки домена
     depends_on:
       - app
     networks:
-      - appnet
+      - webnet
+
+  # certbot:
+  #   image: certbot/certbot
+  #   container_name: certbot
+  #   volumes:
+  #     - ./nginx/certbot/conf:/etc/letsencrypt
+  #     - ./nginx/certbot/www:/var/www/certbot
+  #   entrypoint: "/bin/sh -c 'trap exit TERM; while :; do sleep 12h & wait $${!}; certbot renew; done'"
+  #   depends_on:
+  #     - nginx
+  #   networks:
+  #     - webnet
 
 networks:
-  appnet:
+  webnet:
     driver: bridge

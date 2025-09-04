@@ -8,7 +8,7 @@ export default function downloadFile(req: Request, res: Response, next: NextFunc
       res.setHeader("Content-Disposition", "attachment; filename=minecraft_files.zip");
       res.status(200)
         
-      const GAME_DIR = process.env.GAME_DIR || path.resolve("game_dir");
+      const GAME_DIR = path.join(process.cwd(), "game");
       const archive = archiver("zip", { zlib: { level: 9 } });
       
       archive.pipe(res);

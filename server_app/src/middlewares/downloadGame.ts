@@ -4,7 +4,7 @@ import fs from 'fs/promises';
 
 export default async function downloadGame(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const LAUNCHER_DIR = process.env.LAUNCHER_DIR || path.resolve("launcher_dir");
+    const LAUNCHER_DIR = path.join(process.cwd(), "launcher");
     const files = await fs.readdir(LAUNCHER_DIR);
 
     if (files.length === 0) {
