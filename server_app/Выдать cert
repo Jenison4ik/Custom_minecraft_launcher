@@ -1,0 +1,5 @@
+docker compose run --rm --entrypoint "" certbot certbot certonly --webroot \
+  -w /var/www/certbot \
+  -d jenison.ru -d www.jenison.ru \
+  --email jenison4ik@yandex.ru \
+  --agree-tos --no-eff-email -v

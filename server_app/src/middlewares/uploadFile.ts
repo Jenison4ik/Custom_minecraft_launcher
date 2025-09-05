@@ -3,15 +3,15 @@ import crypto from 'crypto';
 import { Request, Response, NextFunction } from 'express';
 import fs from 'fs';
 import path from 'path';
-
-
+import fsExtra from 'fs-extra';
 
 export default async function uploadFile(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const GAME_DIR = process.env.GAME_DIR || path.resolve("game_dir");
+      const GAME_DIR = path.join(process.cwd(), "game");
       const secret = Buffer.from(process.env.SECRET_KEY || "");
       const provided = Buffer.from(req.headers["x-secret-key"] as string || "");
-  
+      
+
       if (
         secret.length !== provided.length ||
         !crypto.timingSafeEqual(secret, provided)
@@ -31,10 +31,11 @@ export default async function uploadFile(req: Request, res: Response, next: Next
       }
   
       const zipPath = req.file.path;
+      await fsExtra.emptyDir(GAME_DIR);//очистка директории
       await extract(zipPath, { dir: path.resolve(GAME_DIR) }); // распаковка файла
       fs.unlinkSync(zipPath);
   
-      res.status(200).json({ message: "File uploaded successfully" });
+      res.status(200).json({ message: "File uploaded successfully", dir: GAME_DIR });
       next();
     } catch (err) {
       console.error(err);

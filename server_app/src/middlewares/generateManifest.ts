@@ -14,7 +14,7 @@ interface Manifest {
 }
 
 export default async function generateManifest(req: Request, res: Response, next: NextFunction) {
-  const GAME_DIR = process.env.GAME_DIR || path.resolve("game_dir");
+  const GAME_DIR = path.join(process.cwd(), "game");
 
   async function sha1(filePath: string) {
     const data = await fs.readFile(filePath);
