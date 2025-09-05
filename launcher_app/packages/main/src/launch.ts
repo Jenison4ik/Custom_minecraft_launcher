@@ -4,10 +4,13 @@ import * as fs from "fs";
 import { mcPath } from "./createLauncherDir"; // mcPath должен быть экспортирован без циклов
 import { app, BrowserWindow } from "electron";
 import { ensureJava17 } from "./downloadJava";
-import getConfig from "./getConfigPath";
 import sendError from "./sendError";
 import sendDownloadStatus from "./sendDownloadStatus";
 import generateManifest from "./generateManifest";
+import axios from "axios";
+import deepEqual from "./deepEqual";
+import {updates} from "./updates";
+import extract from "extract-zip"
 
 type LaunchArgs = [versionID: string, nickname: string, ram:string,]//надо добавить startOnServer: boolean
 
@@ -19,8 +22,6 @@ export async function runMinecraft(params: LaunchArgs) {
 
   try{
     sendDownloadStatus('Checking Java17', 10, true);
-    const configPath = getConfig();
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
   
   //Configs
     const VERSION_ID = params[0];
@@ -36,18 +37,62 @@ export async function runMinecraft(params: LaunchArgs) {
     const NATIVES_DIR = path.join(VERSION_DIR, "natives");
     const ASSETS_DIR = path.join(BASE_DIR, "assets");
     const versionJsonPath = path.join(VERSION_DIR, `${VERSION_ID}.json`);
-    const versionJson = JSON.parse(fs.readFileSync(versionJsonPath, 'utf-8'));
-    const ASSETS_INDEX = versionJson.assets;
+    
+    
 
     //Создание и проверка игровых файлов
-    await generateManifest(".minecraft")
+    sendDownloadStatus("Checking game files", 20, true);
+    const manifest = await generateManifest(".minecraft");
 
+    sendDownloadStatus("Checking game files", 40, true);
+    const server_manifest = (await axios.get("http://jenison.ru/manifest")).data;
+
+    sendDownloadStatus("Checking game files", 60, true);
+    const needDownload = !deepEqual(manifest, server_manifest);
+    sendDownloadStatus("Checking game files", 80, true);
+
+    //Скачивание
+    if(needDownload){
+      const zipPath = path.join(BASE_DIR,"minecraft.zip")
+      const writer = fs.createWriteStream(zipPath);
+
+      const response = await axios.get('http://jenison.ru/download', { responseType: "stream" });
+
+      const total = parseInt(response.headers["content-length"] || "0", 10);
+      let downloaded = 0;
+
+      response.data.on("data", (chunk: Buffer) => {
+        downloaded += chunk.length;
+        sendDownloadStatus(`Downloaded Minecraft: ${Math.floor(downloaded/1048576)} MB`, 100, true);
+      });
+    
+    sendDownloadStatus("Download completed, unpacking Minecraft...", 100, true);
+    //Удаление неправильных файлов
+      updates.forEach(file =>{
+        const delete_path = path.join(BASE_DIR, file);
+
+        fs.rmSync(delete_path,{recursive:true,force:true});
+      })
+      //Распаковка
+    
+      response.data.pipe(writer);
+
+      await new Promise<void>((resolve, reject) => {
+      writer.on("finish", resolve);
+      writer.on("error", reject);
+      });
+      await extract(zipPath,{dir:BASE_DIR});
+      sendDownloadStatus("Download completed, unpacking Minecraft...", 100, false);
+    }
+    const versionJson = JSON.parse(fs.readFileSync(versionJsonPath, 'utf-8'));
+    const ASSETS_INDEX = versionJson.assets;
 
     // Проверка наличия jar-файла
     if (!fs.existsSync(VERSION_JAR)) {
       throw new Error("Minecraft jar did not found: "+ VERSION_JAR);
     }
-    
+    sendDownloadStatus("Checking game files", 100, true);
+
     if(NICKNAME.length < 3 || NICKNAME.length > 16){
       throw new Error("Nickname must contain from 3 to 16 characters");
     }

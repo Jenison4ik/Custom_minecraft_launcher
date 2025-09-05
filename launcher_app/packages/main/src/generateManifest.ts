@@ -36,7 +36,7 @@ export default async function generateManifest(file: string) {
         if(shouldSkip){
             continue
         }
-        process.stdout.write(shortpath + '\n');
+        // process.stdout.write(shortpath + '\n');
         if (filestat.isDirectory()) {
             const subfiles = await getFiles(filepath);
             result = result.concat(subfiles);
@@ -66,6 +66,7 @@ export default async function generateManifest(file: string) {
 
 
     await fs.writeFile(path.join(baseDir,"manifest.json"), JSON.stringify(manifest));
+    return manifest
   } catch (e) {
     sendError(`❌ Error while generating manifest: ${e}`);
   }
