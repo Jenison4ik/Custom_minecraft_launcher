@@ -7,7 +7,12 @@ let pathName = '.minecraft';
 
 export function createLauncherDirectory() {
   // Путь к пользовательской директории приложения
-  const baseDir = app.getPath('userData'); // например: C:\Users\Имя\AppData\Roaming\Custom_minecraft_launcher
+  const baseDir = app.getPath('userData');
+  //Windows: 
+  //C:\Users\Имя\AppData\Roaming\mc-launcher
+  //Mac
+  //Macintosh HD/User/Имя/Library/Aplicatio Support/mc-launcher
+  
   const launcherDir = path.join(baseDir, pathName); // директория лаунчера
 
   // Подкаталоги

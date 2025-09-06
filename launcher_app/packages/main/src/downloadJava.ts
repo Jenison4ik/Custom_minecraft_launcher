@@ -19,7 +19,11 @@ const JAVA_URL = `https://api.adoptium.net/v3/binary/version/jdk-17.0.10+7/${os}
 export async function ensureJava17(): Promise<string> {
   let stopAnimation = () => {};
   try{
-  const javaExecutable = path.join(java17Path, "bin", "java.exe");
+  const javaExecutable = path.join(
+  java17Path,
+  "bin",
+  process.platform === "win32" ? "java.exe" : "java"
+);
 
   if (fs.existsSync(javaExecutable)) {
     return javaExecutable;

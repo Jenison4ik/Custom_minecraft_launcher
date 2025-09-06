@@ -5,7 +5,6 @@ import ErrorToasts from './ErrorToasts';
 import './styles/App.scss';
 import DownloadBar from './DownloadBar';
 import LaunchButton from './LaunchButton';
-// import folderIcon from './assets/file.png'
 
 type Config = {
   name: string,

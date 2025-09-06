@@ -10,7 +10,7 @@ export async function openLauncherDir() {
         if(platform === 'win32'){//Windows
             exec(`start ${baseDir}`);
         }else if(platform === 'darwin'){//Mac os
-            exec(`open ${baseDir}`);
+            exec(`open "${baseDir}"`);
         }else{//Linux
             exec(`xdg-open ${baseDir}`);
         }
