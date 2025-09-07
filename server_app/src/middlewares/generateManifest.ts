@@ -4,7 +4,6 @@ import path from "path";
 import crypto from "crypto";
 
 interface Manifest {
-  version: string;
   files: {
     [key: string]: {
       sha1: string;
@@ -42,7 +41,6 @@ export default async function generateManifest(req: Request, res: Response, next
   try {
     const files = await getFiles(GAME_DIR);
     const manifest: Manifest = {
-      version: Date.now().toString(),
       files: {},
     };
 
