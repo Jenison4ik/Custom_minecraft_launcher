@@ -4,3 +4,4 @@ dist
 .env
 .DS_Store
 server_app/static
+nginx.conf
