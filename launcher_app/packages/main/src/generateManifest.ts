@@ -1,9 +1,9 @@
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
-import {app} from "electron";
+import { app } from "electron";
 import sendError from "./sendError";
-import {updates} from "./updates"
+import { updates } from "./gameFiles";
 
 interface Manifest {
   files: {
@@ -15,8 +15,8 @@ interface Manifest {
 }
 
 export default async function generateManifest(file: string) {
-  const baseDir = app.getPath('userData');
-  const FILE_DIR = path.join(baseDir,file);
+  const baseDir = app.getPath("userData");
+  const FILE_DIR = path.join(baseDir, file);
 
   async function sha1(filePath: string) {
     const data = await fs.readFile(filePath);
@@ -28,21 +28,23 @@ export default async function generateManifest(file: string) {
     const list = await fs.readdir(dir);
 
     for (const file of list) {
-        const filepath = path.join(dir, file);
-        const filestat = await fs.stat(filepath);
-        const shortpath = filepath.slice(baseDir.length);
-        const shouldSkip = !updates.some(exclusion => shortpath.includes(exclusion));
+      const filepath = path.join(dir, file);
+      const filestat = await fs.stat(filepath);
+      const shortpath = filepath.slice(baseDir.length);
+      const shouldSkip = !updates.some((exclusion) =>
+        shortpath.includes(exclusion)
+      );
 
-        if(shouldSkip){
-            continue
-        }
-        // process.stdout.write(shortpath + '\n');
-        if (filestat.isDirectory()) {
-            const subfiles = await getFiles(filepath);
-            result = result.concat(subfiles);
-        } else {
-            result.push(filepath);
-        }
+      if (shouldSkip) {
+        continue;
+      }
+      // process.stdout.write(shortpath + '\n');
+      if (filestat.isDirectory()) {
+        const subfiles = await getFiles(filepath);
+        result = result.concat(subfiles);
+      } else {
+        result.push(filepath);
+      }
     }
     return result;
   }
@@ -64,9 +66,11 @@ export default async function generateManifest(file: string) {
       };
     }
 
-
-    await fs.writeFile(path.join(baseDir,"manifest.json"), JSON.stringify(manifest));
-    return manifest
+    await fs.writeFile(
+      path.join(baseDir, "manifest.json"),
+      JSON.stringify(manifest)
+    );
+    return manifest;
   } catch (e) {
     sendError(`❌ Error while generating manifest: ${e}`);
   }

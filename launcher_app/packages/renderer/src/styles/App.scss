@@ -1,49 +1,49 @@
 $controls-height: 80px;
 
-html{
-    font-size: 16px;
+html {
+  font-size: 16px;
+  background-color: white;
 }
-.controls{
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: $controls-height;
-    display: flex;
-    padding: 10px 20px;
-    background-color: #e0e0e0;
-    display: grid;
-    grid-auto-columns: 1fr;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 10px;
-    z-index: 1000;
+.controls {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: $controls-height;
+  display: flex;
+  padding: 10px 20px;
+  background-color: #e0e0e0;
+  display: grid;
+  grid-auto-columns: 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  z-index: 1000;
 }
-.folder-button{
-    background-color: #fff;
-    height: 60px;
-    width: 60px;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 5px;
-    transition: all ease-out 0.2s;
-    justify-self: end;
-    &:hover{
-        cursor: pointer;
-        background-color: #ffffff;
-        transform: scale(1.05);
-        box-shadow: 0px 5px 7px #686868;
-        }
-    &:active{
-        transition: all ease-out 0.1s;
-        background-color: #636363;
-        transform: scale(0.9);
-        box-shadow: none;
-    }
-    img{
-        width:40px;
-        height: auto;
-        
-    }
+.folder-button {
+  background-color: #fff;
+  height: 60px;
+  width: 60px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  transition: all ease-out 0.2s;
+  justify-self: end;
+  &:hover {
+    cursor: pointer;
+    background-color: #ffffff;
+    transform: scale(1.05);
+    box-shadow: 0px 5px 7px #686868;
+  }
+  &:active {
+    transition: all ease-out 0.1s;
+    background-color: #636363;
+    transform: scale(0.9);
+    box-shadow: none;
+  }
+  img {
+    width: 40px;
+    height: auto;
+  }
 }

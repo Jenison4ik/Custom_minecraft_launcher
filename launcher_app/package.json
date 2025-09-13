@@ -1,7 +1,7 @@
 {
-  "name": "mc-launcher",
-  "version": "1.1.0",
-  "description": "Minecraft Launcher",
+  "name": "jenison-launcher",
+  "version": "1.4.0",
+  "description": "Jenison Launcher",
   "main": "dist/main/index.js",
   "scripts": {
     "dev": "concurrently \"npm:dev:main\" \"npm:dev:preload\" \"npm:dev:renderer\"",
@@ -13,10 +13,10 @@
     "build:main": "tsc -p packages/main && cpx config.json dist/main/",
     "build:preload": "tsc -p packages/preload",
     "build:renderer": "vite build -c packages/renderer/vite.config.ts",
-    "pack": "npm run build && electron-builder"
+    "pack": "npm run build && electron-builder "
   },
   "keywords": [],
-  "author": "",
+  "author": "Evgeniy Solovev",
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^20.14.9",
@@ -29,6 +29,7 @@
     "electron": "^31.0.2",
     "electron-builder": "^24.13.3",
     "electron-vite": "^4.0.0",
+    "prettier": "^3.6.2",
     "sass": "^1.90.0",
     "typescript": "^5.5.2",
     "vite": "^5.3.1",
@@ -36,16 +37,30 @@
   },
   "dependencies": {
     "axios": "^1.10.0",
+    "electron-updater": "^6.6.2",
     "extract-zip": "^2.0.1",
+    "prismarine-nbt": "^2.7.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "build": {
-    "appId": "com.mclauncher.app",
-    "productName": "Minecraft Launcher",
+    "appId": "ru.jenison",
+    "productName": "Jenison Launcher",
     "directories": {
       "output": "out"
     },
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://jenison.ru/"
+      }
+    ],
     "files": [
       "dist/**/*",
       "node_modules/**/*",

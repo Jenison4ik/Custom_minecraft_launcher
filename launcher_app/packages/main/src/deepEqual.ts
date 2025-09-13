@@ -1,18 +1,38 @@
-export default function deepEqual(obj1:any, obj2:any) {
-  if (obj1 === obj2) return true;
-  if (typeof obj1 !== "object" || typeof obj2 !== "object" || obj1 == null || obj2 == null) {
+type FileEntry = {
+  sha1: string;
+  size: number;
+};
+
+type FilesObject = {
+  files: Record<string, FileEntry>;
+};
+
+export default function deepEqual(
+  obj1: FilesObject,
+  obj2: FilesObject
+): boolean {
+  const files1 = obj1.files;
+  const files2 = obj2.files;
+
+  // Сначала проверим, одинаковый ли набор ключей
+  const keys1 = Object.keys(files1);
+  const keys2 = Object.keys(files2);
+
+  if (keys1.length !== keys2.length) {
     return false;
   }
 
-  const keys1 = Object.keys(obj1);
-  const keys2 = Object.keys(obj2);
-  
-  if (keys1.length !== keys2.length) return false;
+  for (const key of keys1) {
+    if (!(key in files2)) return false;
 
-  for (let key of keys1) {
-    if (!keys2.includes(key) || !deepEqual(obj1[key], obj2[key])) {
+    const f1 = files1[key];
+    const f2 = files2[key];
+
+    // Сравнение именно по sha1 и size
+    if (f1.sha1 !== f2.sha1 || f1.size !== f2.size) {
       return false;
     }
   }
+
   return true;
 }

@@ -18,7 +18,11 @@ export default async function uploadGame(req: Request, res: Response, next: Next
         res.status(401).json({ error: "Unauthorized" });
         return;
       }
-  
+      
+      if(!req.headers["version"]){
+        res.status(400).json({ error: "Version or download URL not specified" });
+      }
+
       if (!req.file) {
         res.status(400).json({ error: "No file uploaded" });
         return;

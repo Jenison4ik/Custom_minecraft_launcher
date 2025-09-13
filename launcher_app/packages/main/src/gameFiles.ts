@@ -1,0 +1,1 @@
+export const updates: string[] = ["assets", "mods", "versions", "libraries"];

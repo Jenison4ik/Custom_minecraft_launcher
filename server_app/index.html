@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jenison`s Server</title>
+  <!-- <link rel="stylesheet" href="styles.css"> -->
+  <link rel="icon" href="./favicon.png" type="image/png">
+  <style>
+    #background {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #222222;
+      color: #fff;
+      text-align: center;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+    #logo{
+      display: none;
+    }
+    .container {
+      max-width: 600px;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 16px;
+      box-shadow: 0 0 20px rgba(0,0,5px,0.6);
+      backdrop-filter: blur(10px);
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    p {
+      margin-bottom: 30px;
+    }
+    main{
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+    a {
+      padding: 15px 30px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #fff;
+      background: rgb(34, 184, 230);
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: 0.2s ease-out;
+      text-decoration: none;
+      display: block;
+      width: fit-content;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    a:hover {
+      background: rgb(7, 128, 165);
+      transform: scale(1.05);
+      cursor: pointer;
+    }
+    a img{
+      width: 20px;
+      margin-left: 7px;
+      height: auto;
+      color: #fff;
+    }
+    footer {
+      margin-top: 30px;
+      font-size: 14px;
+      color: #ccc;
+    }
+
+  </style>
+</head>
+<body id="background">
+  <div class="container">
+    <header>
+      <h1>Jenison`s Minecraft Server</h1>
+      <p>Супер дупер мега сервер по майну, с классными модами и идеальной оптимизацией, </p>
+      <p>&lt;Свой лаунчер и авто-обновления&gt;</p>
+      <p>Нажимай скачать если хочешь чтобы мама жила вечно ❤️</p>
+    </header>
+
+    <main>
+      <a id="downloadBtn" href="downloadGame.exe">Скачать для Windows <img src="./windows.svg" alt=""></a>
+    </main>
+
+    <footer>
+      <p>© 2025 Jenison. Все права защищены.</p>
+    </footer>
+  </div>
+  </spline-viewer>
+  <script src="three.r134.min.js"></script>
+  <script src="vanta.dots.min.js"></script>
+  <script>
+  VANTA.WAVES({
+    el: "#background",
+    mouseControls: true,
+    touchControls: true,
+    gyroControls: false,
+    minHeight: 200.00,
+    minWidth: 200.00,
+    scale: 1.00,
+    scaleMobile: 1.00,
+    color: 0x642400
+  })
+  </script>
+</body>
+</html>

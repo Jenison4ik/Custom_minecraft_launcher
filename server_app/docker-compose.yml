@@ -11,7 +11,11 @@ services:
       - PORT=${PORT}
       - SECRET_KEY=${SECRET_KEY}
     expose:
-      - "${PORT}" 
+      - "${PORT}"
+    volumes:
+      - ./data:/app/data
+      - ./game:/app/game
+      - ./launcher:/app/launcher
     networks:
       - webnet
 
@@ -21,20 +25,16 @@ services:
     restart: always
     ports:
       - "80:80"       # HTTP для первоначальной выдачи сертификата
-      - "443:443"     # HTTPS
+      - "443:443"         # HTTPS
     volumes:
-      - ./nginx/nginx.conf.template:/etc/nginx/nginx.conf.template:ro
-      #- ./nginx/nginx.conf:/etc/nginx/nginx.conf   # Конфигурация Nginx
+      - ./docker_nginx_temp:/var/cache/nginx/client_temp
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf   # Конфигурация Nginx
       - ./nginx/certbot/conf:/etc/letsencrypt  # Сертификаты Let's Encrypt
       - ./nginx/certbot/www:/var/www/certbot   # Временная папка для проверки домена
       - ./static:/app/server_app/static        # Стандартная статическая страница 
-    environment:
-      - PORT=${PORT}         # порт Node.js
-      - DOMAIN=${DOMAIN}     # домен для сертификата
-    command: /bin/sh -c "envsubst < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
     depends_on:
       - app
-    networks: 
+    networks:
       - webnet
 
   certbot:
