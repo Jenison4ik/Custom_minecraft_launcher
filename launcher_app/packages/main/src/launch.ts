@@ -64,10 +64,13 @@ export async function runMinecraft(params: LaunchArgs) {
     const disableDownload = configs.disableDownload ?? false;
     if (!disableDownload) {
       sendDownloadStatus("Checking game files", 20, true);
-      const manifest = (await generateManifest(".minecraft")) as FilesObject;
+      const manifest = (await generateManifest(".minecraft").then((res) => {
+        console.log(res);
+        return res;
+      })) as FilesObject;
       const server_manifest = (await axios.get("http://jenison.ru/manifest"))
         .data;
-      const needDownload = !deepEqual(manifest, server_manifest);
+      const needDownload = await !deepEqual(manifest, server_manifest);
 
       if (needDownload) {
         const zipPath = path.join(BASE_DIR, "minecraft.zip");

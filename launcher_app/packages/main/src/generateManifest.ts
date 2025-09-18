@@ -27,20 +27,21 @@ export default async function generateManifest(file: string) {
     let result: string[] = [];
     const list = await fs.readdir(dir);
 
-    for (const file of list) {
-      const filepath = path.join(dir, file);
+    for (const entry of list) {
+      const filepath = path.join(dir, entry);
       const filestat = await fs.stat(filepath);
       const shortpath = filepath.slice(baseDir.length);
-      const shouldSkipUpdates = !updates.some((exclusion) =>
-        shortpath.includes(exclusion)
-      );
-      const shouldSkipSkip = updates.some((exclusion) =>
-        shortpath.includes(exclusion)
-      );
-      if (shouldSkipUpdates || shouldSkipSkip) {
+
+      // если путь совпадает с исключениями → пропускаем
+      if (skip.some((exclusion) => shortpath.includes(exclusion))) {
         continue;
       }
-      // process.stdout.write(shortpath + '\n');
+
+      // если путь не входит в список обновляемых файлов → пропускаем
+      if (!updates.some((include) => shortpath.includes(include))) {
+        continue;
+      }
+
       if (filestat.isDirectory()) {
         const subfiles = await getFiles(filepath);
         result = result.concat(subfiles);
@@ -53,9 +54,7 @@ export default async function generateManifest(file: string) {
 
   try {
     const files = await getFiles(FILE_DIR);
-    const manifest: Manifest = {
-      files: {},
-    };
+    const manifest: Manifest = { files: {} };
 
     for (const file of files) {
       const relPath = path.relative(FILE_DIR, file).replace(/\\/g, "/");
@@ -70,8 +69,9 @@ export default async function generateManifest(file: string) {
 
     await fs.writeFile(
       path.join(baseDir, "manifest.json"),
-      JSON.stringify(manifest)
+      JSON.stringify(manifest, null, 2) // форматирую для читаемости
     );
+
     return manifest;
   } catch (e) {
     sendError(`❌ Error while generating manifest: ${e}`);

@@ -7,10 +7,10 @@ type FilesObject = {
   files: Record<string, FileEntry>;
 };
 
-export default function deepEqual(
+export default async function deepEqual(
   obj1: FilesObject,
   obj2: FilesObject
-): boolean {
+): Promise<boolean> {
   const files1 = obj1.files;
   const files2 = obj2.files;
 
@@ -18,14 +18,16 @@ export default function deepEqual(
   const keys1 = Object.keys(files1);
   const keys2 = Object.keys(files2);
 
-  // if (keys1.length !== keys2.length) {
-  //   return false;
-  // }
+  if (keys1.length !== keys2.length) {
+    return false;
+  }
 
   for (const key of keys1) {
     if (!(key in files2)) {
       console.log(`\n\n\n ${key} is not exist\n\n\n`);
       return false;
+    } else {
+      console.log(`\n${key} finded!`);
     }
 
     const f1 = files1[key];

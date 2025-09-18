@@ -1,6 +1,6 @@
 {
   "name": "jenison-launcher",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "description": "Jenison Launcher",
   "main": "dist/main/index.js",
   "scripts": {
