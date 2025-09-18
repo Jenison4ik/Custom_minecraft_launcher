@@ -1,0 +1,21 @@
+$col2: #e0e0e0;
+@font-face {
+  font-family: "FontOver";
+  src: url("../FontOver.otf") format("opentype");
+  font-style: normal;
+  font-weight: normal;
+}
+h1,
+h2,
+h3 {
+  font-family: FontOver, sans-serif;
+  font-size: 1rem;
+}
+
+input {
+  font-family: Arial, Helvetica, sans-serif;
+}
+html {
+  font-size: 16px;
+  background-color: white;
+}

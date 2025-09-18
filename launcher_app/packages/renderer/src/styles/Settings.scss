@@ -1,0 +1,48 @@
+@use "./Index.scss" as *;
+
+main {
+  padding: 20px;
+  label {
+    &:hover {
+      cursor: pointer;
+      input:hover {
+        cursor: pointer;
+      }
+    }
+    span {
+      margin-left: 10px;
+      color: $col2;
+    }
+  }
+
+  .ram-select {
+    display: flex;
+    gap: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid $col2;
+    .ram-box-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 5px;
+      .ram-box {
+        border: 1px solid #a1a1a1;
+        background-color: $col2;
+        width: 60px;
+        padding: 2px 4px;
+        border-radius: 4px;
+      }
+    }
+  }
+  h1 {
+    font-size: 2rem;
+    margin: 0;
+  }
+  & > * {
+    margin-bottom: 10px;
+    display: block;
+  }
+  input[type="checkbox"] {
+    margin-right: 5px;
+  }
+}

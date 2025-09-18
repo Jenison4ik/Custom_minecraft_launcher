@@ -1,9 +1,5 @@
+@use "./Index.scss" as *;
 $controls-height: 80px;
-
-html {
-  font-size: 16px;
-  background-color: white;
-}
 .controls {
   position: fixed;
   bottom: 0;
@@ -12,14 +8,22 @@ html {
   height: $controls-height;
   display: flex;
   padding: 10px 20px;
-  background-color: #e0e0e0;
+  background-color: $col2;
   display: grid;
   grid-auto-columns: 1fr;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 10px;
   z-index: 1000;
 }
-.folder-button {
+.buttons-box {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.button {
   background-color: #fff;
   height: 60px;
   width: 60px;

@@ -1,65 +1,64 @@
-@use './reset.scss' as *;
-@use './App.scss' as *;
+@use "./reset.scss" as *;
+@use "./Layout.scss" as *;
 
-.download-bar{
-    position: fixed;
-    overflow: hidden;
-    border-radius: 5px 5px 0 0;
-    background-color: rgb(231, 231, 231);
-    bottom: $controls-height;
-    left: 0;
-    right: 0;
-    height: 40px;
-    z-index: 999;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap:15px;
-    padding: 0 15px;
-    transform: translate(0,40px);
-    p{
-        font-size: 14px;
-        color: #333;
-        font-weight: 500;
-        margin-left: 10px;
-        z-index: 1;
-    }
+.download-bar {
+  position: fixed;
+  overflow: hidden;
+  border-radius: 5px 5px 0 0;
+  background-color: rgb(231, 231, 231);
+  bottom: $controls-height;
+  left: 0;
+  right: 0;
+  height: 40px;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 15px;
+  padding: 0 15px;
+  transform: translate(0, 40px);
+  p {
+    font-size: 14px;
+    color: #333;
+    font-weight: 500;
+    margin-left: 10px;
+    z-index: 1;
+  }
 }
-.download-progress-bar{
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    height: 100%;
-    background-color: rgb(88, 255, 91);
-    margin: 0;
-    z-index: -1;
-    transition: width 0.8s ease-out;
-    overflow: hidden;
-}
-
-.download-animation{
-    background-color: #fff;
-    position: absolute;
-    bottom: -20px;
-    top: -20px;
-    width: 30px;
-    filter: blur(13px);
-    transform: rotate(-30deg);
-    left: 0;
-    animation: download-animation 1.5s linear 0s infinite normal backwards;
+.download-progress-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  height: 100%;
+  background-color: rgb(88, 255, 91);
+  margin: 0;
+  z-index: -1;
+  transition: width 0.8s ease-out;
+  overflow: hidden;
 }
 
-.show{
-    transform: translate(0,0);
+.download-animation {
+  background-color: #fff;
+  position: absolute;
+  bottom: -20px;
+  top: -20px;
+  width: 30px;
+  filter: blur(13px);
+  transform: rotate(-30deg);
+  left: 0;
+  animation: download-animation 1.5s linear 0s infinite normal backwards;
 }
 
+.show {
+  transform: translate(0, 0);
+}
 
 @keyframes download-animation {
-    0%{
-        left:-60px;
-    }
-    100%{
-        left: 110%;
-    }
+  0% {
+    left: -60px;
+  }
+  100% {
+    left: 110%;
+  }
 }

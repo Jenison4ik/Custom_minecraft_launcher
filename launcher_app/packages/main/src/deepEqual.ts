@@ -18,18 +18,22 @@ export default function deepEqual(
   const keys1 = Object.keys(files1);
   const keys2 = Object.keys(files2);
 
-  if (keys1.length !== keys2.length) {
-    return false;
-  }
+  // if (keys1.length !== keys2.length) {
+  //   return false;
+  // }
 
   for (const key of keys1) {
-    if (!(key in files2)) return false;
+    if (!(key in files2)) {
+      console.log(`\n\n\n ${key} is not exist\n\n\n`);
+      return false;
+    }
 
     const f1 = files1[key];
     const f2 = files2[key];
 
     // Сравнение именно по sha1 и size
     if (f1.sha1 !== f2.sha1 || f1.size !== f2.size) {
+      console.log(`\n\n\n ${key} is not equal\n\n\n`);
       return false;
     }
   }

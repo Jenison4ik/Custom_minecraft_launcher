@@ -3,7 +3,7 @@ import path from "path";
 import crypto from "crypto";
 import { app } from "electron";
 import sendError from "./sendError";
-import { updates } from "./gameFiles";
+import { updates, skip } from "./gameFiles";
 
 interface Manifest {
   files: {
@@ -31,11 +31,13 @@ export default async function generateManifest(file: string) {
       const filepath = path.join(dir, file);
       const filestat = await fs.stat(filepath);
       const shortpath = filepath.slice(baseDir.length);
-      const shouldSkip = !updates.some((exclusion) =>
+      const shouldSkipUpdates = !updates.some((exclusion) =>
         shortpath.includes(exclusion)
       );
-
-      if (shouldSkip) {
+      const shouldSkipSkip = updates.some((exclusion) =>
+        shortpath.includes(exclusion)
+      );
+      if (shouldSkipUpdates || shouldSkipSkip) {
         continue;
       }
       // process.stdout.write(shortpath + '\n');

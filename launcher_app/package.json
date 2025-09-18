@@ -1,6 +1,6 @@
 {
   "name": "jenison-launcher",
-  "version": "1.4.0",
+  "version": "1.5.2",
   "description": "Jenison Launcher",
   "main": "dist/main/index.js",
   "scripts": {
@@ -41,7 +41,8 @@
     "extract-zip": "^2.0.1",
     "prismarine-nbt": "^2.7.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^7.9.1"
   },
   "build": {
     "appId": "ru.jenison",

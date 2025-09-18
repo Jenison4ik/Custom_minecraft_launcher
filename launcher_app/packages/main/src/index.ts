@@ -23,40 +23,69 @@ type Config = {
 
 sendError("loaded");
 // =================================================================
-// ЛОГИКА АВТООБНОВЛЕНИЯ
+// ЛОГИКА АВТООБНОВЛЕНИЯ (ИСПРАВЛЕННАЯ ВЕРСИЯ)
 // =================================================================
+// Флаг, который не даст показать диалог о загрузке, если обновление уже скачано
+let updateReadyToInstall = false;
 
-// Срабатывает, когда доступно обновление
+autoUpdater.autoDownload = false;
 
-autoUpdater.on("update-available", async (info) => {
-  sendDownloadStatus("Начинается загрузка обновления...", 0, true);
-  autoUpdater.downloadUpdate();
-});
-
-// Срабатывает после загрузки обновления
+// 1. Срабатывает ПОСЛЕ загрузки обновления.
 autoUpdater.on("update-downloaded", () => {
+  updateReadyToInstall = true;
   sendDownloadStatus("Обновление скачано. Готово к установке.", 100, false);
 
-  const result = dialog.showMessageBoxSync({
-    type: "question",
-    buttons: ["Перезапустить и установить", "Позже"],
-    defaultId: 0,
-    cancelId: 1,
-    title: "Установка обновления",
-    message:
-      "Доступна новая версия! Для применения изменений приложение будет перезапущено.",
-  });
-
-  if (result === 0) {
-    // Устанавливаем isSilent в false, чтобы пользователь видел процесс установки.
-    // allowDowngrade: false - хорошая практика, чтобы не откатываться на старую версию.
-    autoUpdater.quitAndInstall(false, true);
-  }
+  dialog
+    .showMessageBox({
+      type: "info",
+      title: "Установка обновления",
+      message:
+        "Обновление загружено и готово к установке. Приложение будет перезапущено.",
+      buttons: ["Перезапустить и установить"],
+    })
+    .then(() => {
+      autoUpdater.quitAndInstall(false, true);
+    });
 });
 
-// Обработка ошибок
+// 2. Срабатывает, когда найдено обновление.
+autoUpdater.on("update-available", (info) => {
+  if (updateReadyToInstall) {
+    return;
+  }
+
+  dialog
+    .showMessageBox({
+      type: "info",
+      title: "Доступно обновление",
+      message: `Найдена новая версия лаунчера (${info.version}). Хотите загрузить её сейчас?`,
+      buttons: ["Загрузить", "Позже"],
+      defaultId: 0,
+      cancelId: 1,
+    })
+    .then((result) => {
+      if (result.response === 0) {
+        autoUpdater.downloadUpdate();
+        sendDownloadStatus("Начинается загрузка обновления...", 0, true);
+      }
+    });
+});
+
+// 3. Срабатывает во время загрузки обновления
+autoUpdater.on("download-progress", (progress) => {
+  sendDownloadStatus(
+    "Загрузка обновления...",
+    Math.floor(progress.percent),
+    true
+  );
+});
+
+// 4. Обработка ошибок
 autoUpdater.on("error", (error) => {
-  sendError(`Ошибка автообновления: ${error.message}`);
+  sendError(
+    `Ошибка автообновления: ${error ? error.message : "Неизвестная ошибка"}`
+  );
+  sendDownloadStatus("Ошибка во время загрузки", Math.floor(0), false);
 });
 
 function addToConfig(configs: Config[]) {
