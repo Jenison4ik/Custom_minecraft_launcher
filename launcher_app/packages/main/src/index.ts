@@ -10,10 +10,12 @@ import { openLauncherDir } from "./openLauncherDir";
 import { autoUpdater } from "electron-updater";
 import sendDownloadStatus from "./sendDownloadStatus";
 import sendError from "./sendError";
+import url from "./url";
+import restoreMinecraft from "./restoreMinecraft";
+import Status from "./status";
 
 const configPath = getConfig();
 const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-
 const totalmem = Math.floor(os.totalmem() / 1048576);
 
 type Config = {
@@ -34,7 +36,7 @@ autoUpdater.autoDownload = false;
 autoUpdater.on("update-downloaded", () => {
   updateReadyToInstall = true;
   sendDownloadStatus("Обновление скачано. Готово к установке.", 100, false);
-
+  win.webContents.send("launch-minecraft", false);
   dialog
     .showMessageBox({
       type: "info",
@@ -67,6 +69,7 @@ autoUpdater.on("update-available", (info) => {
       if (result.response === 0) {
         autoUpdater.downloadUpdate();
         sendDownloadStatus("Начинается загрузка обновления...", 0, true);
+        win.webContents.send("launch-minecraft", true);
       }
     });
 });
@@ -86,6 +89,7 @@ autoUpdater.on("error", (error) => {
     `Ошибка автообновления: ${error ? error.message : "Неизвестная ошибка"}`
   );
   sendDownloadStatus("Ошибка во время загрузки", Math.floor(0), false);
+  win.webContents.send("launch-minecraft", false);
 });
 
 function addToConfig(configs: Config[]) {
@@ -99,14 +103,16 @@ function addToConfig(configs: Config[]) {
     Object.assign(config, JSON.parse(fs.readFileSync(configPath, "utf-8")));
     return;
   } catch (e) {
-    process.stdout.write("Error while writing to config, details: " + e);
+    console.log("Error while writing to config, details: " + e);
     return;
   }
 }
 
+let win: BrowserWindow;
+
 function createWindow() {
-  process.stdout.write(join(__dirname, "../renderer/icon.png"));
-  const win = new BrowserWindow({
+  console.log(join(__dirname, "../renderer/icon.png"));
+  win = new BrowserWindow({
     minWidth: 700,
     minHeight: 400,
     width: 1000,
@@ -128,23 +134,42 @@ function createWindow() {
     win.loadFile(join(__dirname, "../renderer/index.html"));
   }
 }
+//Отправка логов в основную часть приложения
+function forwardLogs() {
+  const sendLog = (type: string, msg: string) => {
+    if (win) {
+      win.webContents.send("log-message", { type, msg });
+    }
+  };
 
+  const origLog = console.log;
+  console.log = (...args) => {
+    origLog(...args);
+    sendLog("log", args.join(" "));
+  };
+
+  const origErr = console.error;
+  console.error = (...args) => {
+    origErr(...args);
+    sendLog("error", args.join(" "));
+  };
+}
 app.whenReady().then(() => {
-  createWindow();
+  let isConectionLost = false;
 
+  createWindow();
+  forwardLogs();
   autoUpdater.setFeedURL({
     provider: "generic",
-    url: "https://jenison.ru", // просто базовый URL, updater ищет latest.yml
+    url: url, // просто базовый URL, updater ищет latest.yml
   });
-
   autoUpdater.checkForUpdates();
-  // checkServerUpdate();
 });
 app.whenReady().then(() => {
   try {
     createLauncherDirectory();
   } catch (e) {
-    process.stdout.write(`${e}\n`);
+    sendError(`${e}\n`);
   }
 });
 
@@ -176,10 +201,17 @@ ipcMain.handle("add-to-configs", async (event, params: Config[]) => {
   try {
     addToConfig(params);
   } catch (e) {
-    process.stdout.write(`Can't save configs at config.json error: ${e}`);
+    console.log(`Can't save configs at config.json error: ${e}`);
   }
 });
 ipcMain.handle("open-launcher-dir", () => {
   openLauncherDir();
 });
+ipcMain.handle("download-minecraft", async () => {
+  await restoreMinecraft();
+  return false;
+});
 ipcMain.handle("ui-loaded", () => {});
+ipcMain.handle("is-launched", () => {
+  return Status.getStatus();
+});

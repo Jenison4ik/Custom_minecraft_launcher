@@ -18,7 +18,9 @@ declare global {
       uiLoaded: () => Promise<void>;
       addToConfigs: (params: Config[]) => Promise<void>;
       getMemSize: () => Promise<number>;
-      onError: (callback: (message: string) => void) => void;
+      onError: (
+        callback: (message: string, type: "error" | "notification") => void
+      ) => void;
       onDownloadStatus: (
         callback: (
           message: string,
@@ -26,7 +28,10 @@ declare global {
           isDownloading: boolean
         ) => void
       ) => void;
-      onMinecraft: (callback: (status: boolean) => void) => void;
+      onMinecraft: (callback: (status: boolean) => void) => () => void;
+      removeOnMinecraft: () => void;
+      downloadMinecraft: () => Promise<boolean>;
+      getStatus: () => Promise<boolean>;
     };
   }
 }
@@ -75,6 +80,7 @@ function App() {
               onChange={(e) => setUsingmem(e)}
               usingmem={usingmem}
               configs={configs}
+              setConfigs={setConfigs}
             />
           }
         />

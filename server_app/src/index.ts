@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
 import multer from "multer";
-
+import archiver from "archiver";
 //Middlewares
 import uploadFile from "./middlewares/uploadFile.js";
 import downloadFile from "./middlewares/downloadFile.js";
@@ -32,30 +32,63 @@ app.get("/", (req: Request, res: Response) => {
   res.send("Hello, from Jenison`s MC Launcher!");
 });
 
+
 app.post(
-  "/upload",
+  "/minecraft/api/upload",
   upload.single("file"),
   uploadFile,
   generateManifest,
-  (req, res, next) => {
+  async (req, res, next) => {
     try {
       if (!(req as RequestWithManifest).manifest) {
         throw new Error("Manifest is not generated");
       }
+
+      // сохраняем манифест
       fs.writeFileSync(
         path.join(DATA_DIR, "manifest.json"),
         JSON.stringify((req as RequestWithManifest).manifest, null, 2)
       );
-    } catch (e) {
-      console.error("❌ Error while saving manifest:", e);
-      next(e);
+
+      const zipPath = path.join(DATA_DIR, "minecraft_files.zip");
+      if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
+
+      const output = fs.createWriteStream(zipPath);
+      const archive = archiver("zip", { zlib: { level: 9 } });
+
+      // логирование ошибок
+      archive.on("warning", (err) => console.warn("⚠️ Archive warning:", err));
+      archive.on("error", (err) => { throw err });
+
+      archive.pipe(output);
+
+      // Добавляем абсолютно все файлы и скрытые тоже
+      archive.glob("**/*", { cwd: GAME_DIR, dot: true });
+
+      // ждём полного завершения
+      await new Promise<void>((resolve, reject) => {
+        output.on("close", () => {
+          console.log(`✅ Архив создан: ${zipPath}, размер ${archive.pointer()} байт`);
+          resolve();
+        });
+        archive.on("error", reject);
+        archive.finalize();
+      });
+
+      res.status(200).json({
+        message: "File uploaded and archive prepared successfully",
+        archive: zipPath,
+      });
+    } catch (err) {
+      console.error("❌ Error in uploadFile:", err);
+      res.status(500).json({ error: "Error uploading file", details: err });
+      next(err);
     }
   }
 );
+app.get("/minecraft/api/download", downloadFile);
 
-app.get("/download", downloadFile);
-
-app.get("/latest", (req, res) => {
+app.get("/minecraft/api/latest", (req, res) => {
   try {
     const version_path = path.join(process.cwd(), "data", "version.json");
     const data = JSON.parse(fs.readFileSync(version_path, "utf-8"));
@@ -66,7 +99,7 @@ app.get("/latest", (req, res) => {
   }
 });
 
-app.get("/manifest", async (req: RequestWithManifest, res) => {
+app.get("/minecraft/api/manifest", async (req: RequestWithManifest, res) => {
   try {
     const manifestPath = path.join(DATA_DIR, "manifest.json");
 
@@ -87,9 +120,9 @@ app.get("/manifest", async (req: RequestWithManifest, res) => {
   }
 });
 
-app.get("/downloadGame.exe", downloadGame);
+app.get("/minecraft/api/downloadGame.exe", downloadGame);
 
-app.post("/uploadGame", upload.single("file"), uploadGame,uploadYML, (req, res) => {
+app.post("/minecraft/api/uploadGame", upload.single("file"), uploadGame,uploadYML, (req, res) => {
   try {
     const version = {
       version: req.headers["version"],
@@ -105,7 +138,7 @@ app.post("/uploadGame", upload.single("file"), uploadGame,uploadYML, (req, res) 
   }
 });
 
-app.get("/latest.yml", (req, res) => {
+app.get("/minecraft/api/latest.yml", (req, res) => {
   res.sendFile(path.join(process.cwd(), "data", "latest.yml"), (err) => {
     if (err) {
       console.error("Error sending latest.yml:", err);

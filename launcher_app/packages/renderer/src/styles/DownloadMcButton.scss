@@ -1,0 +1,24 @@
+@use "./Index.scss" as *;
+
+.restorebtn {
+  background-color: $col4;
+  color: $col10;
+  width: 20%;
+  min-width: 250px;
+  height: 30px;
+  padding: 5px 10px;
+  box-sizing: content-box;
+  border-radius: 5px;
+  transition: background-color ease-out 0.2s;
+  &:hover {
+    background-color: $col9;
+    cursor: pointer;
+  }
+  &:disabled {
+    cursor: default;
+    filter: brightness(0.7);
+    &:hover {
+      background-color: $col4;
+    }
+  }
+}

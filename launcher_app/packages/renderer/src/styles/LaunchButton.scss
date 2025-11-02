@@ -1,37 +1,45 @@
+@use "./Index.scss" as *;
 .load-btn {
+  text-shadow:
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    1px 1px 0 #000;
   font-family: FontOver;
   bottom: 3px;
   position: relative;
   font-size: 1rem;
   font-weight: bolder;
   color: #fff;
-  background-color: #ff5454;
+  background-color: $col7;
   padding: 10px 20px;
   border-radius: 5px;
-  transition: top ease-out 0.2s;
-  transition: background-color ease-out 0.2s;
-  box-shadow: 3px 3px 5px #b4b4b4;
+  transition:
+    top ease-out 0.2s,
+    background-color ease-out 0.2s,
+    box-shadow ease-out 0.2s;
   min-width: 230px;
   perspective: 500px;
   transform: rotate3d(1, 0, 0, 340deg);
-  box-shadow:
-    0 10px #742e2e,
-    0px 16px 13px #888888;
+  box-shadow: 0 10px $col6;
+
   &:disabled {
     filter: brightness(0.7);
+    cursor: default;
+    background-color: $col7;
+    box-shadow: 0 10px $col6;
   }
-  &:hover {
-    background-color: #b32d2d;
+
+  &:hover:not(:disabled) {
+    background-color: $col6;
+    box-shadow: 0 10px $col7;
     cursor: pointer;
-    &:disabled {
-      background-color: #ff5454;
-      cursor: default;
-    }
   }
-  &:active {
+
+  &:active:not(:disabled) {
     top: 6px;
     box-shadow:
-      0 3px #742e2e,
+      0 3px $col6,
       0px 6px 6px #888888,
       0 -2px 10px #888888;
   }

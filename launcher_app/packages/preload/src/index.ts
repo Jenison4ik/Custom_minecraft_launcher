@@ -7,8 +7,12 @@ contextBridge.exposeInMainWorld("launcherAPI", {
   uiLoaded: () => ipcRenderer.invoke("ui-loaded"),
   addToConfigs: (params: any[]) => ipcRenderer.invoke("add-to-configs", params),
   getMemSize: () => ipcRenderer.invoke("get-mem-size"),
-  onError: (callback: (message: string) => void) => {
-    ipcRenderer.on("show-error-toast", (event, message) => callback(message));
+  onError: (
+    callback: (message: string, type: "error" | "notification") => void
+  ) => {
+    ipcRenderer.on("show-error-toast", (event, message, type) =>
+      callback(message, type)
+    );
   },
   onDownloadStatus: (
     callback: (
@@ -24,6 +28,21 @@ contextBridge.exposeInMainWorld("launcherAPI", {
     );
   },
   onMinecraft: (callback: (status: boolean) => void) => {
-    ipcRenderer.on("launch-minecraft", (event, status) => callback(status));
+    const listener = (_event: Electron.IpcRendererEvent, status: boolean) => {
+      callback(status);
+    };
+
+    ipcRenderer.on("launch-minecraft", listener);
+
+    // Возвращаем функцию отписки
+    return () => {
+      ipcRenderer.removeListener("launch-minecraft", listener);
+    };
+  },
+  downloadMinecraft: () => {
+    ipcRenderer.invoke("download-minecraft");
+  },
+  getStatus: async () => {
+    return await ipcRenderer.invoke("is-launched");
   },
 });

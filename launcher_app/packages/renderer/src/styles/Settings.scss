@@ -3,6 +3,7 @@
 main {
   padding: 20px;
   label {
+    color: $col10;
     &:hover {
       cursor: pointer;
       input:hover {
@@ -17,6 +18,7 @@ main {
 
   .ram-select {
     display: flex;
+    color: $col10;
     gap: 10px;
     padding-bottom: 10px;
     border-bottom: 1px solid $col2;
@@ -27,10 +29,14 @@ main {
       gap: 5px;
       .ram-box {
         border: 1px solid #a1a1a1;
-        background-color: $col2;
+        background-color: $col9;
+        color: $col10;
         width: 60px;
         padding: 2px 4px;
         border-radius: 4px;
+        &:focus-visible {
+          border: 1px solid $col8;
+        }
       }
     }
   }

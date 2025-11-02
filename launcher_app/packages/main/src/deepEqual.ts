@@ -8,37 +8,27 @@ type FilesObject = {
 };
 
 export default async function deepEqual(
-  obj1: FilesObject,
-  obj2: FilesObject
+  local: FilesObject,
+  server: FilesObject
 ): Promise<boolean> {
-  const files1 = obj1.files;
-  const files2 = obj2.files;
+  const localFiles = local.files;
+  const serverFiles = server.files;
 
-  // Сначала проверим, одинаковый ли набор ключей
-  const keys1 = Object.keys(files1);
-  const keys2 = Object.keys(files2);
-
-  if (keys1.length !== keys2.length) {
-    return false;
-  }
-
-  for (const key of keys1) {
-    if (!(key in files2)) {
-      console.log(`\n\n\n ${key} is not exist\n\n\n`);
-      return false;
-    } else {
-      console.log(`\n${key} finded!`);
+  for (const key of Object.keys(serverFiles)) {
+    if (!(key in localFiles)) {
+      console.log(`❌ The local manifest does not contain the file: ${key}`);
+      return false; // не хватает файла из серверного манифеста
     }
 
-    const f1 = files1[key];
-    const f2 = files2[key];
+    const fLocal = localFiles[key];
+    const fServer = serverFiles[key];
 
-    // Сравнение именно по sha1 и size
-    if (f1.sha1 !== f2.sha1 || f1.size !== f2.size) {
-      console.log(`\n\n\n ${key} is not equal\n\n\n`);
-      return false;
+    if (fLocal.sha1 !== fServer.sha1 || fLocal.size !== fServer.size) {
+      console.log(`❌ The file is different: ${key}`);
+      return false; // файл отличается
     }
   }
 
+  // Если дошли сюда, значит все файлы сервера есть и совпадают → true
   return true;
 }

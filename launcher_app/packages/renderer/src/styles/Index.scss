@@ -1,4 +1,13 @@
-$col2: #e0e0e0;
+$col1: #191a19;
+$col2: #1d1d1d;
+$col3: #e0e0e0;
+$col4: #363636;
+$col6: #1e5128;
+$col7: #4e9f3d;
+$col8: #d8e9a8;
+$col9: #33363d;
+$col10: #777e87;
+
 @font-face {
   font-family: "FontOver";
   src: url("../FontOver.otf") format("opentype");
@@ -10,12 +19,20 @@ h2,
 h3 {
   font-family: FontOver, sans-serif;
   font-size: 1rem;
+  color: $col3;
+  text-shadow:
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    1px 1px 0 #000;
 }
 
 input {
   font-family: Arial, Helvetica, sans-serif;
 }
 html {
+  height: 100%;
   font-size: 16px;
-  background-color: white;
+  background: linear-gradient(180deg, $col6 -35%, #191a19 30%) center / cover
+    no-repeat;
 }

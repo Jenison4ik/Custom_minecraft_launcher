@@ -44,7 +44,7 @@ export async function ensureJava17(): Promise<string> {
         const { loaded, total } = progressEvent;
         if (total) {
           const percent = Math.round((loaded * 100) / total);
-          process.stdout.write(
+          console.log(
             `\r Downloading Java17 ${Math.floor(loaded / 1048576)} MB from ${Math.floor(total / 1048576)} MB`
           );
           sendDownloadStatus(
@@ -66,7 +66,7 @@ export async function ensureJava17(): Promise<string> {
     });
 
     sendDownloadStatus("Download completed, unpacking Java...", 100, true);
-    process.stdout.write("Unpacking Java...\n");
+    console.log("Unpacking Java...\n");
     await extract(zipPath, { dir: javaBaseDir });
 
     //название извлечённой папки
@@ -79,7 +79,7 @@ export async function ensureJava17(): Promise<string> {
     fs.renameSync(path.join(javaBaseDir, extractedDir), java17Path);
 
     sendDownloadStatus("Java 17 installation completed!", 100, false);
-    process.stdout.write("Java 17 installed\n");
+    console.log("Java 17 installed\n");
     return javaExecutable;
   } catch (e: unknown) {
     if (e instanceof Error) {

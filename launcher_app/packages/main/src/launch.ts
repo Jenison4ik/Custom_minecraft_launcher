@@ -9,10 +9,11 @@ import sendDownloadStatus from "./sendDownloadStatus";
 import generateManifest from "./generateManifest";
 import axios from "axios";
 import deepEqual from "./deepEqual";
-import { updates } from "./gameFiles";
-import extract from "extract-zip";
 import addServer from "./addServer";
 import getConfig from "./getConfigPath";
+import downloadMinecraft from "./downloadMinecraft";
+import url from "./url";
+import Status from "./status";
 
 type LaunchArgs = [versionID: string, nickname: string, ram: string];
 
@@ -28,6 +29,7 @@ type FilesObject = {
 export async function runMinecraft(params: LaunchArgs) {
   const window = BrowserWindow.getAllWindows()[0];
   window.webContents.send("launch-minecraft", true);
+  Status.setStatus(true);
 
   try {
     addServer();
@@ -38,7 +40,6 @@ export async function runMinecraft(params: LaunchArgs) {
     const NICKNAME = params[1];
     const JAVA_PATH = await ensureJava17();
     const RAM = params[2];
-
     // Пути
     const BASE_DIR = path.join(app.getPath("userData"), mcPath);
     const VERSION_DIR = path.join(BASE_DIR, "versions", VERSION_ID);
@@ -68,45 +69,11 @@ export async function runMinecraft(params: LaunchArgs) {
         console.log(res);
         return res;
       })) as FilesObject;
-      const server_manifest = (await axios.get("http://jenison.ru/manifest"))
-        .data;
-      const needDownload = await !deepEqual(manifest, server_manifest);
-
-      if (needDownload) {
-        const zipPath = path.join(BASE_DIR, "minecraft.zip");
-        const writer = fs.createWriteStream(zipPath);
-
-        sendDownloadStatus(`Waiting Minecraft Download`, 25, true);
-        const response = await axios.get("http://jenison.ru/download", {
-          responseType: "stream",
-          onDownloadProgress: (progressEvent) => {
-            const { loaded, total } = progressEvent;
-            if (total) {
-              const percent = Math.round((loaded * 100) / total);
-              process.stdout.write(
-                `\r Downloading Minecraft ${Math.floor(loaded / 1048576)} MB from ${Math.floor(total / 1048576)} MB`
-              );
-              sendDownloadStatus(
-                `Downloading Minecraft: loaded ${Math.floor(loaded / 1048576)} MB from ${Math.floor(total / 1048576)} MB`,
-                percent,
-                true
-              );
-            }
-          },
-        });
-
-        response.data.pipe(writer);
-
-        await new Promise<void>((resolve, reject) => {
-          writer.on("finish", resolve);
-          writer.on("error", reject);
-        });
-        await extract(zipPath, { dir: BASE_DIR });
-        sendDownloadStatus(
-          "Download completed, unpacking Minecraft...",
-          100,
-          false
-        );
+      const server_manifest = (await axios.get(url + "/manifest")).data;
+      const needDownload = await deepEqual(manifest, server_manifest);
+      if (!needDownload) {
+        process.stdout.write("\n\ndone\n\n");
+        await downloadMinecraft();
       }
     }
 
@@ -180,7 +147,7 @@ export async function runMinecraft(params: LaunchArgs) {
         sendDownloadStatus("Loading graphics", 80, true);
       if (line.includes("OpenAL initialized"))
         sendDownloadStatus("Minecraft launched", 100, false);
-      process.stdout.write(line);
+      console.log(line);
     });
 
     mc.stderr.on("data", (data: Buffer) => process.stderr.write(data));
@@ -188,10 +155,12 @@ export async function runMinecraft(params: LaunchArgs) {
       console.log(`Minecraft ended with code: ${code}`);
       sendDownloadStatus("Minecraft closed", 0, false);
       window.webContents.send("launch-minecraft", false);
+      Status.setStatus(false);
     });
   } catch (e) {
     sendError("Error while launching minecraft, " + e);
     sendDownloadStatus("Error while launching Minecraft", 0, false);
     window.webContents.send("launch-minecraft", false);
+    Status.setStatus(false);
   }
 }

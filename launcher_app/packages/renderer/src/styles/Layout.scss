@@ -14,6 +14,8 @@ $controls-height: 80px;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 10px;
   z-index: 1000;
+  background: $col2;
+  border-top: 1px solid $col3;
 }
 .buttons-box {
   width: 100%;
@@ -24,7 +26,7 @@ $controls-height: 80px;
   gap: 10px;
 }
 .button {
-  background-color: #fff;
+  background-color: $col4;
   height: 60px;
   width: 60px;
   overflow: hidden;
@@ -36,7 +38,7 @@ $controls-height: 80px;
   justify-self: end;
   &:hover {
     cursor: pointer;
-    background-color: #ffffff;
+    background-color: $col9;
     transform: scale(1.05);
     box-shadow: 0px 5px 7px #686868;
   }

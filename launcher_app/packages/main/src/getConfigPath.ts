@@ -8,7 +8,7 @@ export default function getConfig() {
 
   if (!fs.existsSync(configPath)) {
     fs.writeFileSync(configPath, "{}", "utf8");
-    process.stdout.write("Created config.json\n");
+    console.log("Created config.json\n");
   }
   return configPath;
 }

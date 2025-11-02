@@ -38,9 +38,6 @@ export default async function uploadFile(
     await extract(zipPath, { dir: path.resolve(GAME_DIR) }); // распаковка файла
     fs.unlinkSync(zipPath);
 
-    res
-      .status(200)
-      .json({ message: "File uploaded successfully", dir: GAME_DIR });
     next();
   } catch (err) {
     console.error(err);
