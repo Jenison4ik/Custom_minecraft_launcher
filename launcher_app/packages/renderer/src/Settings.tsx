@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import InputRange from "./inputRam";
 import DownloadMcButton from "./DownloadMcButton";
 import "./styles/Settings.scss";
@@ -29,6 +29,15 @@ export default function Settings({
       ? Math.floor(totalmem * 0.6)
       : configs.ram;
 
+  // Локальное состояние для слайдера/инпута RAM — меняется часто и
+  // не поднимает ререндер App. Применяем в App только по commit.
+  const [localRam, setLocalRam] = useState<number>(ramDefault);
+
+  // Синхронизируем локальное состояние, если входные значения поменялись
+  useEffect(() => {
+    setLocalRam(ramDefault);
+  }, [ramDefault, totalmem]);
+
   const handleCheckboxChange = async (checked: boolean) => {
     // Обновляем конфиг через API
     await window.launcherAPI.addToConfigs([
@@ -43,7 +52,12 @@ export default function Settings({
       <h1>Настройки</h1>
 
       <h2>Оперативная память</h2>
-      <InputRange defVal={ramDefault} maxVal={totalmem} onChange={onChange} />
+      <InputRange
+        defVal={localRam}
+        maxVal={totalmem}
+        onChange={(v) => setLocalRam(v)}
+        onCommit={(v) => onChange(v)}
+      />
 
       <label>
         <input

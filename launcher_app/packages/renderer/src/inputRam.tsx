@@ -5,12 +5,14 @@ interface InputRangeProps {
   inputRef?: React.Ref<HTMLInputElement>;
   defVal: number;
   onChange: (e: number) => void;
+  onCommit?: (e: number) => void;
 }
 export default function InputRange({
   maxVal,
   inputRef,
   defVal,
   onChange,
+  onCommit,
 }: InputRangeProps) {
   const [val, setVal] = useState(defVal.toString());
 
@@ -27,6 +29,14 @@ export default function InputRange({
         onChange={(e) => {
           setVal(e.target.value);
           onChange(e.target.valueAsNumber);
+        }}
+        onMouseUp={() => {
+          const value = parseInt(val, 10);
+          onCommit?.(isNaN(value) ? minVal : value);
+        }}
+        onTouchEnd={() => {
+          const value = parseInt(val, 10);
+          onCommit?.(isNaN(value) ? minVal : value);
         }}
       />
       <div className="ram-box-wrap">
@@ -51,14 +61,14 @@ export default function InputRange({
             const value = parseInt(val, 10);
             if (value < minVal || isNaN(value)) {
               setVal(minVal.toString());
-              onChange(minVal);
+              onCommit?.(minVal);
               return;
             } else if (value > maxVal) {
               setVal(maxVal.toString());
-              onChange(maxVal);
+              onCommit?.(maxVal);
               return;
             }
-            onChange(value);
+            onCommit?.(value);
           }}
         />
         <p>MB</p>

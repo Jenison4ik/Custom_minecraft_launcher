@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Home from "./Home";
 import Settings from "./Settings";
 import Layout from "./Layout";
+import { useRam } from "./hooks/useRam";
 type Config = {
   name: string;
   value: any;
@@ -39,7 +40,7 @@ declare global {
 function App() {
   const [totalmem, setTotalmem] = useState<number>(0);
   const [configs, setConfigs] = useState<{ [key: string]: any } | null>(null);
-  const [usingmem, setUsingmem] = useState<number>(0);
+  const { usingMem, setUsingMem } = useRam(configs, totalmem);
   useEffect(() => {
     window.launcherAPI
       .getConfigs()
@@ -50,21 +51,14 @@ function App() {
       });
     console.log(configs);
   }, []);
-
+  useEffect(() => {
+    console.log("render");
+  });
   useEffect(() => {
     window.launcherAPI.getMemSize().then((data) => {
       setTotalmem(data);
     });
   }, []);
-  useEffect(() => {
-    if (configs && totalmem) {
-      setUsingmem(
-        configs.ram === undefined || configs.ram > totalmem
-          ? Math.floor(totalmem * 0.6)
-          : configs.ram
-      );
-    }
-  }, [configs, totalmem]);
   if (!configs) {
     return <div>Загрузка...</div>;
   }
@@ -77,15 +71,15 @@ function App() {
           element={
             <Settings
               totalmem={totalmem}
-              onChange={(e) => setUsingmem(e)}
-              usingmem={usingmem}
+              onChange={setUsingMem}
+              usingmem={usingMem}
               configs={configs}
               setConfigs={setConfigs}
             />
           }
         />
       </Routes>
-      <Layout configs={configs} usingmem={usingmem} />
+      <Layout configs={configs} usingmem={usingMem} />
     </HashRouter>
   );
 }
