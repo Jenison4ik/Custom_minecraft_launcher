@@ -31,8 +31,7 @@ export async function ensureJava17(): Promise<string> {
     if (fs.existsSync(javaExecutable)) {
       return javaExecutable;
     }
-    sendError("Java 17 not found, downloading...");
-    sendDownloadStatus("Starting Java 17 download...", 0, true);
+    sendDownloadStatus("Java 17 не найдена, загружаем...", 0, true);
 
     const zipPath = path.join(app.getPath("temp"), "java17.zip");
 
@@ -45,15 +44,15 @@ export async function ensureJava17(): Promise<string> {
         if (total) {
           const percent = Math.round((loaded * 100) / total);
           console.log(
-            `\r Downloading Java17 ${Math.floor(loaded / 1048576)} MB from ${Math.floor(total / 1048576)} MB`
+            `\r Загрузка Java17 ${Math.floor(loaded / 1048576)} MB from ${Math.floor(total / 1048576)} MB`
           );
           sendDownloadStatus(
-            `Downloading Java 17: loaded ${Math.floor(loaded / 1048576)} MB from ${Math.floor(total / 1048576)} MB`,
+            `Загрузка Java 17: loaded ${Math.floor(loaded / 1048576)} MB from ${Math.floor(total / 1048576)} MB`,
             percent,
             true
           );
         } else {
-          sendDownloadStatus(`Downloaded Java 17: ${loaded} bytes`, 100, false);
+          sendDownloadStatus(`Загрузка Java 17: ${loaded} bytes`, 100, false);
         }
       },
     });
@@ -65,29 +64,28 @@ export async function ensureJava17(): Promise<string> {
       writer.on("error", reject);
     });
 
-    sendDownloadStatus("Download completed, unpacking Java...", 100, true);
-    console.log("Unpacking Java...\n");
+    sendDownloadStatus("Загрузка завершена, распаковываем Java...", 100, true);
+    console.log("Распаковка Java...\n");
     await extract(zipPath, { dir: javaBaseDir });
 
     //название извлечённой папки
     const extractedDir = fs
       .readdirSync(javaBaseDir)
       .find((d) => d.includes("jdk") || d.includes("jre"));
-    if (!extractedDir)
-      throw new Error("The extracted Java folder could not be found");
+    if (!extractedDir) throw new Error("Извлеченная папка Java не найдена");
 
     fs.renameSync(path.join(javaBaseDir, extractedDir), java17Path);
 
-    sendDownloadStatus("Java 17 installation completed!", 100, false);
-    console.log("Java 17 installed\n");
+    sendDownloadStatus("Установка Java 17 завершена!", 100, false);
+    console.log("Java 17 установлен\n");
     return javaExecutable;
   } catch (e: unknown) {
     if (e instanceof Error) {
-      sendError(`Failed to download Java 17: ${e.message}`);
+      sendError(`Ошибка при загрузке Java 17: ${e.message}`);
       throw e;
     }
     // Handle non-Error objects
-    sendError("Failed to download Java 17: Unknown error");
-    throw new Error("Unknown error occurred");
+    sendError("Ошибка при загрузке Java 17: Неизвестная ошибка");
+    throw new Error("Неизвестная ошибка");
   }
 }

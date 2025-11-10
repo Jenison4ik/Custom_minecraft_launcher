@@ -51,9 +51,7 @@ function App() {
       });
     console.log(configs);
   }, []);
-  useEffect(() => {
-    console.log("render");
-  });
+
   useEffect(() => {
     window.launcherAPI.getMemSize().then((data) => {
       setTotalmem(data);

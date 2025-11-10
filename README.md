@@ -86,7 +86,7 @@ npm run pack
 ```json
 {
   "launcher-name": "Custom Minecraft Launcher",
-  "nickname": "Steve",
+  "nickname": "Steve"
   "ram": 2048,
   "minecraft-path-name": ".minecraft",
   "mods-path": "mods",

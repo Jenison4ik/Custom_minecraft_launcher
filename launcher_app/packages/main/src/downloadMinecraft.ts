@@ -15,7 +15,7 @@ export default async function downloadMinecraft() {
 
     const zipPath = path.join(BASE_DIR, "minecraft.zip");
 
-    sendDownloadStatus("Waiting Minecraft Download...", 0, true);
+    sendDownloadStatus("Ожидание Загрузки...", 0, true);
 
     const response = await axios.get(url + "/download", {
       responseType: "stream",
@@ -34,7 +34,7 @@ export default async function downloadMinecraft() {
       if (total) {
         const percent = Math.round((loaded * 100) / total);
         sendDownloadStatus(
-          `Downloading Minecraft: ${Math.floor(loaded / 1048576)} MB of ${Math.floor(total / 1048576)} MB`,
+          `Загрузка Minecraft: ${Math.floor(loaded / 1048576)} MB of ${Math.floor(total / 1048576)} MB`,
           percent,
           true
         );
@@ -43,16 +43,24 @@ export default async function downloadMinecraft() {
 
     await pipeline(response.data, writer); // корректная запись потока на диск
 
-    sendDownloadStatus("Download completed, preparing directory...", 100, true);
+    sendDownloadStatus(
+      "Загрузка завершена, подготавливается каталог...",
+      100,
+      true
+    );
     fs.rmSync(path.join(BASE_DIR, "mods"), { recursive: true, force: true }); // удаление старого архива, если он есть
 
-    sendDownloadStatus("Download completed, unpacking Minecraft...", 100, true);
+    sendDownloadStatus(
+      "Загрузка завершена, распаковываем Minecraft...",
+      100,
+      true
+    );
     // Распаковка архива
     await extract(zipPath, { dir: BASE_DIR });
 
-    sendDownloadStatus("Minecraft unpacked successfully", 100, false);
+    sendDownloadStatus("Minecraft успешно распакован", 100, false);
   } catch (e) {
-    sendDownloadStatus("Error during Minecraft download: " + e, 0, false);
+    sendDownloadStatus("Ошибка при загрузке Minecraft: " + e, 0, false);
     throw e;
   }
 }
