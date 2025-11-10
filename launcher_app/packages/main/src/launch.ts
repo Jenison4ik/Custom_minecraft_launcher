@@ -81,10 +81,10 @@ export async function runMinecraft(params: LaunchArgs) {
     const ASSETS_INDEX = versionJson.assets;
 
     if (!fs.existsSync(VERSION_JAR)) {
-      throw new Error("Minecraft jar not found: " + VERSION_JAR); //Вдруг скачалось не то
+      throw new Error("Minecraft jar не найден: " + VERSION_JAR); //Вдруг скачалось не то
     }
     if (NICKNAME.length < 3 || NICKNAME.length > 16) {
-      throw new Error("Nickname must contain from 3 to 16 characters"); //Формат никнейма для майнкрафта
+      throw new Error("Никнейм должен содержать от 3 до 16 символов"); //Формат никнейма для майнкрафта
     }
 
     // Сборка classpath (все библиотеки + версия)
@@ -104,7 +104,7 @@ export async function runMinecraft(params: LaunchArgs) {
       return jars.join(path.delimiter);
     }
 
-    sendDownloadStatus("Building classpath", 15, true);
+    sendDownloadStatus("Сборка classpath", 15, true);
     const classpath = getClasspath(LIBRARIES_DIR, VERSION_JAR);
 
     // JVM + game args
@@ -136,31 +136,31 @@ export async function runMinecraft(params: LaunchArgs) {
     const args = [...jvmArgs, mainClass, ...gameArgs];
 
     //Запуск майнкрафта
-    sendDownloadStatus("Starting JVM", 30, true);
+    sendDownloadStatus("Запуск JVM", 30, true);
     const mc = spawn(JAVA_PATH, args, { cwd: BASE_DIR });
 
     mc.stdout.on("data", (data: Buffer) => {
       const line = data.toString();
       if (line.includes("Setting user"))
-        sendDownloadStatus("Initializing session", 50, true);
+        sendDownloadStatus("Инициализация сессии", 50, true);
       if (line.includes("LWJGL"))
-        sendDownloadStatus("Loading graphics", 80, true);
+        sendDownloadStatus("Загрузка графики", 80, true);
       if (line.includes("OpenAL initialized"))
-        sendDownloadStatus("Minecraft launched", 100, false);
-      console.log(line);
+        sendDownloadStatus("Minecraft запущен", 100, false);
+      console.log(line); //Вывод логов в консоль
     });
 
     mc.stderr.on("data", (data: Buffer) => process.stderr.write(data));
     mc.on("exit", (code: number) => {
-      console.log(`Minecraft ended with code: ${code}`);
-      sendDownloadStatus("Minecraft closed", 0, false);
-      window.webContents.send("launch-minecraft", false);
-      Status.setStatus(false);
+      console.log(`Minecraft завершен с кодом: ${code}`);
+      sendDownloadStatus("Minecraft завершен", 0, false);
+      window.webContents.send("launch-minecraft", false); //Отправка события в главное окно
+      Status.setStatus(false); //Установка статуса в false
     });
   } catch (e) {
-    sendError("Error while launching minecraft, " + e);
-    sendDownloadStatus("Error while launching Minecraft", 0, false);
-    window.webContents.send("launch-minecraft", false);
-    Status.setStatus(false);
+    sendError("Ошибка при запуске Minecraft, " + e);
+    sendDownloadStatus("Ошибка при запуске Minecraft", 0, false);
+    window.webContents.send("launch-minecraft", false); //Отправка события в главное окно
+    Status.setStatus(false); //Установка статуса в false
   }
 }
