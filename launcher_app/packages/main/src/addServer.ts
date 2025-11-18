@@ -4,6 +4,7 @@ import { app } from "electron";
 import { mcPath } from "./createLauncherDir";
 import fs from "fs";
 import sendError from "./sendError";
+import launcherProperties from "./launcherProperties";
 
 interface NBTTag<TType extends string, TValue> {
   type: TType;
@@ -55,13 +56,17 @@ export default async function addServer() {
     };
 
     const serversList = data.servers.value.value;
-    const exists = serversList.some((s) => s.ip.value === "jenison.ru");
-    if (!exists) {
-      serversList.push({
-        ip: { type: "string", value: "jenison.ru" },
-        name: { type: "string", value: "Chikadrilo Online" },
-        acceptTextures: { type: "byte", value: 1 },
-      });
+    const serversConfig = launcherProperties.servers ?? [];
+    for (const server of serversConfig) {
+      const exists = serversList.some((s) => s.ip.value === server.ip);
+      if (!exists) {
+        const serverName = server.lable ?? server.ip;
+        serversList.push({
+          ip: { type: "string", value: server.ip },
+          name: { type: "string", value: serverName },
+          acceptTextures: { type: "byte", value: 1 },
+        });
+      }
     }
 
     // Сохраняем весь корневой compound

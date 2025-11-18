@@ -5,7 +5,7 @@ import axios from "axios";
 import { mcPath } from "./createLauncherDir";
 import { app } from "electron";
 import extract from "extract-zip";
-import url from "./url";
+import url from "./launcherProperties";
 import { pipeline } from "stream/promises";
 
 export default async function downloadMinecraft() {

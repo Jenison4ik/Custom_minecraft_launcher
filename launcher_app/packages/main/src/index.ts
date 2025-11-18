@@ -10,7 +10,7 @@ import { openLauncherDir } from "./openLauncherDir";
 import { autoUpdater } from "electron-updater";
 import sendDownloadStatus from "./sendDownloadStatus";
 import sendError from "./sendError";
-import url from "./url";
+import properties from "./launcherProperties";
 import restoreMinecraft from "./restoreMinecraft";
 import Status from "./status";
 
@@ -161,7 +161,7 @@ app.whenReady().then(() => {
   forwardLogs();
   autoUpdater.setFeedURL({
     provider: "generic",
-    url: url, // просто базовый URL, updater ищет latest.yml
+    url: properties.url, // просто базовый URL, updater ищет latest.yml
   });
   autoUpdater.checkForUpdates();
 });

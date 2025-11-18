@@ -12,7 +12,7 @@ import deepEqual from "./deepEqual";
 import addServer from "./addServer";
 import getConfig from "./getConfigPath";
 import downloadMinecraft from "./downloadMinecraft";
-import url from "./url";
+import url from "./launcherProperties";
 import Status from "./status";
 
 type LaunchArgs = [versionID: string, nickname: string, ram: string];
@@ -64,7 +64,7 @@ export async function runMinecraft(params: LaunchArgs) {
     const configs = JSON.parse(data);
     const disableDownload = configs.disableDownload ?? false;
     if (!disableDownload) {
-      sendDownloadStatus("Checking game files", 20, true);
+      sendDownloadStatus("Проверяем файлы Minecraft", 20, true);
       const manifest = (await generateManifest(".minecraft").then((res) => {
         console.log(res);
         return res;
