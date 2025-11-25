@@ -5,7 +5,7 @@ import axios from "axios";
 import { mcPath } from "./createLauncherDir";
 import { app } from "electron";
 import extract from "extract-zip";
-import url from "./launcherProperties";
+import launcherProperties from "./launcherProperties";
 import { pipeline } from "stream/promises";
 
 export default async function downloadMinecraft() {
@@ -17,7 +17,7 @@ export default async function downloadMinecraft() {
 
     sendDownloadStatus("Ожидание Загрузки...", 0, true);
 
-    const response = await axios.get(url + "/download", {
+    const response = await axios.get(launcherProperties.url + "/download", {
       responseType: "stream",
       decompress: false, // важно, чтобы не декодировать gzip
       headers: { "Accept-Encoding": "identity" },
