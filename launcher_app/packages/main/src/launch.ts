@@ -36,11 +36,10 @@ export async function runMinecraft(params: LaunchArgs) {
     sendDownloadStatus("Checking Java17", 10, true);
 
     // Параметры запуска
-    const requestedVersionId = params[0]; // например "1.21.1-fabric" или "1.20.1-forge-xx"
+    const requestedVersionId = params[0]; // например "1.21.1-fabric"
     const NICKNAME = params[1];
     const JAVA_PATH = await ensureJava17();
     const RAM = params[2];
-
     // Пути
     const BASE_DIR = path.join(app.getPath("userData"), mcPath);
     const VERSION_ID = resolveVersionDirectory(BASE_DIR, requestedVersionId);
@@ -52,7 +51,7 @@ export async function runMinecraft(params: LaunchArgs) {
     const versionJsonPath = path.join(VERSION_DIR, `${VERSION_ID}.json`);
 
     const configPath = getConfig();
-    let selectedCore = resolveMcCore(launcherProperties.mcCore);
+    const selectedCore = resolveMcCore(launcherProperties.mcCore);
 
     const targetFile = path.join(BASE_DIR, "mods.zip"); //фикс бага
     if (fs.existsSync(targetFile) && fs.statSync(targetFile).isFile()) {
@@ -82,9 +81,6 @@ export async function runMinecraft(params: LaunchArgs) {
       }
     }
 
-    if (!fs.existsSync(versionJsonPath)) {
-      throw new Error("version.json не найден: " + versionJsonPath);
-    }
     const versionJson = JSON.parse(fs.readFileSync(versionJsonPath, "utf-8"));
     const ASSETS_INDEX = versionJson.assets;
 
@@ -95,21 +91,11 @@ export async function runMinecraft(params: LaunchArgs) {
       throw new Error("Никнейм должен содержать от 3 до 16 символов"); //Формат никнейма для майнкрафта
     }
 
-    // Если launcherProperties.mcCore не явный (например 'fabric' по умолчанию),
-    // попытаемся определить ядро по JSON версии
-    const autoDetected = detectCoreFromJson(versionJson);
-    if (autoDetected) {
-      // разрешаем автоопределение ядра — если обнаружен forge/vanilla/fabric
-      selectedCore = autoDetected;
-    }
-    console.log("Selected core:", selectedCore);
-
-    // Сборка classpath (разные подходы для Forge и для других)
+    // Сборка classpath (все библиотеки + версия)
     function getClasspath(librariesDir: string, versionJar: string): string {
       const jars: string[] = [];
 
       function walk(d: string) {
-        if (!fs.existsSync(d)) return;
         for (const file of fs.readdirSync(d)) {
           const full = path.join(d, file);
           if (fs.statSync(full).isDirectory()) walk(full);
@@ -122,86 +108,8 @@ export async function runMinecraft(params: LaunchArgs) {
       return jars.join(path.delimiter);
     }
 
-    function getForgeClasspath(versionJsonInner: any, baseDir: string): string {
-      const jars: string[] = [];
-
-      if (Array.isArray(versionJsonInner.libraries)) {
-        for (const lib of versionJsonInner.libraries) {
-          // учитываем только те библиотеки, у которых задан downloads.artifact.path
-          try {
-            const artifact = lib?.downloads?.artifact?.path;
-            if (!artifact) continue;
-            const full = path.join(baseDir, "libraries", artifact);
-            if (fs.existsSync(full)) {
-              jars.push(full);
-            } else {
-              // на всякий случай: если нет по path, попробуем собрать из name (maven coords)
-              if (lib.name) {
-                const alt = mavenPathFromName(lib.name);
-                const altFull = path.join(baseDir, "libraries", alt);
-                if (fs.existsSync(altFull)) jars.push(altFull);
-              }
-            }
-          } catch (err) {
-            // просто пропускаем некорректные записи
-            continue;
-          }
-        }
-      }
-
-      // Добавляем version jar в конец (как у тебя было)
-      const vjar = path.join(
-        baseDir,
-        "versions",
-        versionJsonInner.id,
-        `${versionJsonInner.id}.jar`
-      );
-      if (fs.existsSync(vjar)) {
-        jars.push(vjar);
-      }
-
-      return jars.join(path.delimiter);
-    }
-
-    // Вспомогательное: собрать maven-путь из group:artifact:version
-    function mavenPathFromName(name: string): string {
-      // group:artifact:version[:classifier@ext]
-      // примеры: com.mojang:patchy:1.1
-      const parts = name.split(":");
-      if (parts.length < 3) return name;
-      const group = parts[0];
-      const artifact = parts[1];
-      const version = parts[2];
-      let classifierExt = "";
-      if (parts.length >= 4) {
-        classifierExt = parts[3]; // classifier или classifier@ext
-      }
-      const groupPath = group.replace(/\./g, "/");
-      let filename = `${artifact}-${version}`;
-      if (classifierExt) {
-        // если classifierExt содержит '@', то часть после '@' — расширение
-        if (classifierExt.includes("@")) {
-          const [classifier, ext] = classifierExt.split("@");
-          if (classifier) filename += `-${classifier}`;
-          filename += `.${ext || "jar"}`;
-        } else {
-          filename += `-${classifierExt}.jar`;
-        }
-      } else {
-        filename += ".jar";
-      }
-      return path.join(groupPath, artifact, version, filename);
-    }
-
     sendDownloadStatus("Сборка classpath", 15, true);
-
-    // Выбираем classpath в зависимости от ядра
-    const classpath =
-      selectedCore === "forge"
-        ? getForgeClasspath(versionJson, BASE_DIR)
-        : getClasspath(LIBRARIES_DIR, VERSION_JAR);
-
-    // Теперь строим placeholder map (Classpath нужен внутри)
+    const classpath = getClasspath(LIBRARIES_DIR, VERSION_JAR);
     const launcherPlaceholders = buildPlaceholderMap({
       assetsDir: ASSETS_DIR,
       assetsIndex: ASSETS_INDEX,
@@ -262,22 +170,15 @@ export async function runMinecraft(params: LaunchArgs) {
         gameArgsToUse =
           versionGameArgs.length > 0 ? versionGameArgs : baseGameArgs;
         break;
-
       case "forge":
-        // Для forge используем mainClass из json или стандартный модлаунчер
         mainClass = versionJson.mainClass ?? "cpw.mods.modlauncher.Launcher";
-
-        // JVM аргументы: используются либо из JSON, либо базовые
         jvmArgsToUse =
           versionJvmArgs.length > 0
             ? applyMemoryLimit(versionJvmArgs, RAM)
             : baseJvmArgs;
-
-        // Игровые аргументы: либо из JSON, либо базовые + фордж-специфичные
-        if (versionGameArgs.length > 0) {
-          gameArgsToUse = versionGameArgs;
-        } else {
-          // пытаемся извлечь специфичные args для forge
+        gameArgsToUse =
+          versionGameArgs.length > 0 ? versionGameArgs : baseGameArgs;
+        if (versionGameArgs.length === 0) {
           const forgeArgs = extractForgeArguments(
             versionArguments.game,
             launcherPlaceholders
@@ -286,26 +187,16 @@ export async function runMinecraft(params: LaunchArgs) {
             forgeArgs.length > 0
               ? forgeArgs
               : ["--launchTarget", "forgeclient"];
-          gameArgsToUse = mergeArgs(baseGameArgs, fallbackForgeArgs);
+          gameArgsToUse = mergeArgs(gameArgsToUse, fallbackForgeArgs);
         }
-
         break;
-
-      default: // fabric (или другое)
-        mainClass =
-          versionJson.mainClass ?? "net.fabricmc.loader.launch.knot.KnotClient";
-        jvmArgsToUse =
-          versionJvmArgs.length > 0
-            ? applyMemoryLimit(versionJvmArgs, RAM)
-            : baseJvmArgs;
-        gameArgsToUse =
-          versionGameArgs.length > 0 ? versionGameArgs : baseGameArgs;
+      default:
+        mainClass = "net.fabricmc.loader.launch.knot.KnotClient";
+        jvmArgsToUse = baseJvmArgs;
+        gameArgsToUse = baseGameArgs;
         break;
     }
 
-    // Собираем итоговый массив аргументов
-    // Для JVM: уже содержится "-cp", classpath внутри baseJvmArgs или versionJvmArgs
-    // Поэтому просто собираем jvmArgs + mainClass + gameArgs
     const args = [...jvmArgsToUse, mainClass, ...gameArgsToUse];
 
     //Запуск майнкрафта
@@ -333,8 +224,7 @@ export async function runMinecraft(params: LaunchArgs) {
   } catch (e) {
     sendError("Ошибка при запуске Minecraft, " + e);
     sendDownloadStatus("Ошибка при запуске Minecraft", 0, false);
-    const win = BrowserWindow.getAllWindows()[0];
-    if (win) win.webContents.send("launch-minecraft", false);
+    window.webContents.send("launch-minecraft", false); //Отправка события в главное окно
     Status.setStatus(false); //Установка статуса в false
   }
 }
@@ -388,49 +278,6 @@ function resolveMcCore(core?: McCore): McCore {
     return core;
   }
   return "fabric";
-}
-
-/**
- * Попытка определить ядро по содержимому version.json
- * Возвращает "forge" | "fabric" | "vanilla"
- */
-function detectCoreFromJson(versionJson: any): McCore | undefined {
-  try {
-    const main = (versionJson.mainClass || "").toString().toLowerCase();
-    const id = (versionJson.id || "").toString().toLowerCase();
-
-    if (
-      main.includes("modlauncher") ||
-      main.includes("fml") ||
-      id.includes("forge")
-    ) {
-      return "forge";
-    }
-    if (
-      main.includes("knot") ||
-      main.includes("fabric") ||
-      id.includes("fabric")
-    ) {
-      return "fabric";
-    }
-    // fallback: если есть флаги fml в arguments.game
-    const gameArgs = versionJson.arguments?.game;
-    if (Array.isArray(gameArgs)) {
-      for (const item of gameArgs) {
-        if (
-          typeof item === "string" &&
-          item.includes("--launchTarget") &&
-          item.includes("forge")
-        ) {
-          return "forge";
-        }
-      }
-    }
-    // иначе считаем vanilla
-    return "vanilla";
-  } catch (err) {
-    return undefined;
-  }
 }
 
 function buildPlaceholderMap(
@@ -487,10 +334,7 @@ function buildArgsFromArgumentEntries(
   const result: string[] = [];
   for (const entry of entries) {
     if (typeof entry === "string") {
-      const resolved = applyPlaceholders(entry, placeholders);
-      if (resolved) {
-        result.push(resolved);
-      }
+      result.push(applyPlaceholders(entry, placeholders));
       continue;
     }
     if (!shouldIncludeArgument(entry.rules)) {
@@ -498,10 +342,7 @@ function buildArgsFromArgumentEntries(
     }
     const values = Array.isArray(entry.value) ? entry.value : [entry.value];
     for (const value of values) {
-      const resolved = applyPlaceholders(value, placeholders);
-      if (resolved) {
-        result.push(resolved);
-      }
+      result.push(applyPlaceholders(value, placeholders));
     }
   }
   return result.filter((value) => value !== "");
@@ -545,12 +386,9 @@ function shouldIncludeArgument(rules?: MinecraftRule[]): boolean {
 }
 
 function applyPlaceholders(
-  value: string | undefined,
+  value: string,
   placeholders: Record<string, string>
 ): string {
-  if (!value) {
-    return "";
-  }
   return value.replace(/\$\{(.+?)\}/g, (_, key) => placeholders[key] ?? "");
 }
 
@@ -582,7 +420,6 @@ function extractForgeArguments(
     "--fml.mcVersion",
     "--fml.mcpVersion",
     "--versionType",
-    "--fml.forgeGroup",
   ]);
   const resolvedArgs = buildArgsFromArgumentEntries(entries, placeholders);
   const extras: string[] = [];
