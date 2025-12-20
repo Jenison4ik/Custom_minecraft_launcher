@@ -2,7 +2,7 @@ export type McCore = "fabric" | "forge" | "vanilla";
 
 const launcherProperties = {
   url: "https://jenison.ru/minecraft/api",
-  mcCore: "fabric" as McCore,
+  mcCore: "forge" as McCore,
   servers: [
     {
       ip: "jenison.ru",

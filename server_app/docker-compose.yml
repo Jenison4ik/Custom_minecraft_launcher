@@ -1,4 +1,4 @@
-version: "3.9"  # Версия Docker Compose, 3.9 — современная и поддерживает все нужные возможности
+version: "3.9" # Версия Docker Compose, 3.9 — современная и поддерживает все нужные возможности
 
 services:
   app:
@@ -6,7 +6,7 @@ services:
     container_name: server_app
     restart: always
     env_file:
-      - .env          # Подключаем переменные окружения из файла .env
+      - .env # Подключаем переменные окружения из файла .env
     environment:
       - PORT=${PORT}
       - SECRET_KEY=${SECRET_KEY}
@@ -24,18 +24,64 @@ services:
     container_name: nginx_proxy
     restart: always
     ports:
-      - "80:80"       # HTTP для первоначальной выдачи сертификата
-      - "443:443"         # HTTPS
+      - "80:80" # HTTP для первоначальной выдачи сертификата
+      - "443:443" # HTTPS
     volumes:
       - ./docker_nginx_temp:/var/cache/nginx/client_temp
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf   # Конфигурация Nginx
-      - ./nginx/certbot/conf:/etc/letsencrypt  # Сертификаты Let's Encrypt
-      - ./nginx/certbot/www:/var/www/certbot   # Временная папка для проверки домена
-      - ./static:/app/server_app/static        # Стандартная статическая страница 
+      - ./nginx/nginx.conf:/etc/nginx/templates/nginx.conf.template:ro # Полная конфигурация с HTTPS
+      - ./nginx/nginx-init.conf.template:/etc/nginx/templates/nginx-init.conf.template:ro # Начальная конфигурация без HTTPS
+      - ./nginx/entrypoint.sh:/docker-entrypoint.sh:ro # Entrypoint скрипт
+      - ./nginx/certbot/conf:/etc/letsencrypt # Сертификаты Let's Encrypt
+      - ./nginx/certbot/www:/var/www/certbot # Временная папка для проверки домена
+      - ./static:/app/server_app/static # Стандартная статическая страница
     depends_on:
       - app
+    environment:
+      - DOMAIN=${DOMAIN}
+    entrypoint: ["/bin/sh", "/docker-entrypoint.sh"]
     networks:
       - webnet
+
+  # Сервис для первоначального получения сертификатов
+  # Использование: docker-compose --profile init run --rm certbot-init
+  certbot-init:
+    image: certbot/certbot
+    container_name: certbot_init
+    volumes:
+      - ./nginx/certbot/conf:/etc/letsencrypt
+      - ./nginx/certbot/www:/var/www/certbot
+    entrypoint: >
+      /bin/sh -c "
+        DOMAIN=$${DOMAIN}
+        EMAIL=$${CERTBOT_EMAIL:-admin@$${DOMAIN}}
+        CERT_PATH=\"/etc/letsencrypt/live/$${DOMAIN}/fullchain.pem\"
+        
+        if [ ! -f \"$${CERT_PATH}\" ]; then
+          echo '🔐 Получение SSL сертификатов для $${DOMAIN}...';
+          echo '📧 Email для уведомлений: $${EMAIL}';
+          certbot certonly --webroot -w /var/www/certbot \
+            --email \"$${EMAIL}\" --agree-tos --no-eff-email \
+            -d \"$${DOMAIN}\" -d \"www.$${DOMAIN}\" || {
+              echo '❌ Ошибка при получении сертификатов';
+              exit 1;
+            }
+          if [ -f \"$${CERT_PATH}\" ]; then
+            echo '✅ Сертификаты успешно получены!';
+            echo '🔄 Перезагрузите nginx: docker exec nginx_proxy nginx -s reload';
+          fi
+        else
+          echo '✅ Сертификаты уже существуют в $${CERT_PATH}';
+        fi
+      "
+    depends_on:
+      - nginx
+    environment:
+      - DOMAIN=${DOMAIN}
+      - CERTBOT_EMAIL=${CERTBOT_EMAIL:-} # Опциональный email, по умолчанию admin@${DOMAIN}
+    networks:
+      - webnet
+    profiles:
+      - init # Запускается только с профилем init: docker-compose --profile init run --rm certbot-init
 
   certbot:
     image: certbot/certbot
@@ -53,7 +99,6 @@ services:
       - nginx
     networks:
       - webnet
-
 
 networks:
   webnet:

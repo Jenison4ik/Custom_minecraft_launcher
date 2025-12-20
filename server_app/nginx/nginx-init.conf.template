@@ -26,7 +26,7 @@ http {
     gzip_min_length 1000;
     gzip_vary on;
 
-    # --- HTTP: редиректим на HTTPS ---
+    # --- HTTP: первоначальная конфигурация БЕЗ редиректа на HTTPS ---
     server {
         listen 80;
         server_name ${DOMAIN} www.${DOMAIN};
@@ -36,26 +36,7 @@ http {
             allow all;
         }
 
-        location / {
-            return 301 https://${DOMAIN}$request_uri;
-        }
-    }
-
-    # --- HTTPS: основной сайт (${DOMAIN}) ---
-    server {
-        listen 443 ssl http2;
-        server_name ${DOMAIN};
-
-        ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
-        ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
-        ssl_protocols TLSv1.2 TLSv1.3;
-        ssl_ciphers HIGH:!aNULL:!MD5;
-
-        # HSTS (на год, включая поддомены)
-        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
-        add_header X-Robots-Tag "noindex, nofollow, nosnippet, noarchive";
-
-        # Node.js API
+        # Node.js API (работает по HTTP до получения сертификатов)
         location /minecraft/api/ {
             proxy_pass http://app:3000/minecraft/api/;
             proxy_http_version 1.1;
@@ -76,6 +57,7 @@ http {
             index index.html index.htm;
             try_files $uri $uri/ =404;
         }
+        
         #Онлайн карта
         location /minecraft/map/ {
             proxy_pass http://172.17.0.1:8100/;
@@ -84,12 +66,12 @@ http {
             proxy_set_header Connection "upgrade";
             proxy_set_header Host $host;
         }
+        
         error_page 404 /404.html;
         location = /404.html {
             root /app/server_app/static;
             internal;
         }
-
 
         # robots.txt
         location /robots.txt {
@@ -100,15 +82,5 @@ http {
             access_log off;
         }
     }
-
-    # --- HTTPS: редирект www.${DOMAIN} -> ${DOMAIN} ---
-    server {
-        listen 443 ssl http2;
-        server_name www.${DOMAIN};
-
-        ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
-        ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
-
-        return 301 https://${DOMAIN}$request_uri;
-    }
 }
+

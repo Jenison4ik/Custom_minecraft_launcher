@@ -7,7 +7,7 @@ import sendError from "./sendError";
 import sendDownloadStatus from "./sendDownloadStatus";
 
 const javaBaseDir = path.join(app.getPath("userData"), "java");
-const java17Path = path.join(javaBaseDir, "temurin-17");
+const java21Path = path.join(javaBaseDir, "temurin-21");
 const os =
   process.platform === "win32"
     ? "windows"
@@ -16,14 +16,14 @@ const os =
       : "linux";
 const arch = process.arch === "x64" ? "x64" : "aarch64";
 
-//URL для Windows x64
-const JAVA_URL = `https://api.adoptium.net/v3/binary/version/jdk-17.0.10+7/${os}/${arch}/jdk/hotspot/normal/eclipse?project=jdk`;
+// URL для Temurin 21
+const JAVA_URL = `https://api.adoptium.net/v3/binary/version/jdk-21.0.3+9/${os}/${arch}/jdk/hotspot/normal/eclipse?project=jdk`;
 
-export async function ensureJava17(): Promise<string> {
+export async function ensureJava21(): Promise<string> {
   let stopAnimation = () => {};
   try {
     const javaExecutable = path.join(
-      java17Path,
+      java21Path,
       "bin",
       process.platform === "win32" ? "java.exe" : "java"
     );
@@ -31,9 +31,9 @@ export async function ensureJava17(): Promise<string> {
     if (fs.existsSync(javaExecutable)) {
       return javaExecutable;
     }
-    sendDownloadStatus("Java 17 не найдена, загружаем...", 0, true);
+    sendDownloadStatus("Java 21 не найдена, загружаем...", 0, true);
 
-    const zipPath = path.join(app.getPath("temp"), "java17.zip");
+    const zipPath = path.join(app.getPath("temp"), "java21.zip");
 
     const writer = fs.createWriteStream(zipPath);
 
@@ -44,15 +44,15 @@ export async function ensureJava17(): Promise<string> {
         if (total) {
           const percent = Math.round((loaded * 100) / total);
           console.log(
-            `\r Загрузка Java17 ${Math.floor(loaded / 1048576)} MB from ${Math.floor(total / 1048576)} MB`
+            `\r Загрузка Java21 ${Math.floor(loaded / 1048576)} MB from ${Math.floor(total / 1048576)} MB`
           );
           sendDownloadStatus(
-            `Загрузка Java 17: loaded ${Math.floor(loaded / 1048576)} MB from ${Math.floor(total / 1048576)} MB`,
+            `Загрузка Java 21: loaded ${Math.floor(loaded / 1048576)} MB from ${Math.floor(total / 1048576)} MB`,
             percent,
             true
           );
         } else {
-          sendDownloadStatus(`Загрузка Java 17: ${loaded} bytes`, 100, false);
+          sendDownloadStatus(`Загрузка Java 21: ${loaded} bytes`, 100, false);
         }
       },
     });
@@ -64,7 +64,11 @@ export async function ensureJava17(): Promise<string> {
       writer.on("error", reject);
     });
 
-    sendDownloadStatus("Загрузка завершена, распаковываем Java...", 100, true);
+    sendDownloadStatus(
+      "Загрузка завершена, распаковываем Java 21...",
+      100,
+      true
+    );
     console.log("Распаковка Java...\n");
     await extract(zipPath, { dir: javaBaseDir });
 
@@ -74,18 +78,18 @@ export async function ensureJava17(): Promise<string> {
       .find((d) => d.includes("jdk") || d.includes("jre"));
     if (!extractedDir) throw new Error("Извлеченная папка Java не найдена");
 
-    fs.renameSync(path.join(javaBaseDir, extractedDir), java17Path);
+    fs.renameSync(path.join(javaBaseDir, extractedDir), java21Path);
 
-    sendDownloadStatus("Установка Java 17 завершена!", 100, false);
-    console.log("Java 17 установлен\n");
+    sendDownloadStatus("Установка Java 21 завершена!", 100, false);
+    console.log("Java 21 установлен\n");
     return javaExecutable;
   } catch (e: unknown) {
     if (e instanceof Error) {
-      sendError(`Ошибка при загрузке Java 17: ${e.message}`);
+      sendError(`Ошибка при загрузке Java 21: ${e.message}`);
       throw e;
     }
     // Handle non-Error objects
-    sendError("Ошибка при загрузке Java 17: Неизвестная ошибка");
+    sendError("Ошибка при загрузке Java 21: Неизвестная ошибка");
     throw new Error("Неизвестная ошибка");
   }
 }
