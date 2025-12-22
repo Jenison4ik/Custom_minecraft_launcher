@@ -38,7 +38,7 @@ http {
 
         # Node.js API (работает по HTTP до получения сертификатов)
         location /minecraft/api/ {
-            proxy_pass http://app:3000/minecraft/api/;
+            proxy_pass http://app:8080/minecraft/api/;
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection 'upgrade';

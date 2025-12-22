@@ -9,10 +9,10 @@
 # Например: DOMAIN=jenison.ru
 
 # 2. Запустите nginx и app (nginx автоматически запустится в режиме без HTTPS)
-docker-compose up -d nginx app
+docker compose up -d nginx app
 
 # 3. Получите SSL сертификаты
-docker-compose --profile init run --rm certbot-init
+docker compose --profile init run --rm certbot-init
 
 # 4. Перезагрузите nginx (он автоматически переключится на HTTPS)
 docker exec nginx_proxy nginx -s reload
@@ -58,7 +58,7 @@ A: Удалите старые сертификаты и запустите cert
 
 ```bash
 rm -rf ./nginx/certbot/conf/live/${DOMAIN}
-docker-compose --profile init run --rm certbot-init
+docker compose --profile init run --rm certbot-init
 docker exec nginx_proxy nginx -s reload
 ```
 
