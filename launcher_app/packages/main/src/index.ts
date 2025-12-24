@@ -13,6 +13,7 @@ import sendError from "./sendError";
 import properties from "./launcherProperties";
 import restoreMinecraft from "./restoreMinecraft";
 import Status from "./status";
+import mcLaunch from "./mcLaunch/mcLaunch";
 
 const configPath = getConfig();
 const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
@@ -92,7 +93,7 @@ autoUpdater.on("error", (error) => {
   win.webContents.send("launch-minecraft", false);
 });
 
-function addToConfig(configs: Config[]) {
+export function addToConfig(configs: Config[]) {
   try {
     const configJson = fs.readFileSync(configPath, "utf-8");
     const configData = JSON.parse(configJson);
@@ -194,7 +195,8 @@ ipcMain.handle("get-mem-size", async () => {
 });
 
 ipcMain.handle("run-minecraft", async () => {
-  runMinecraft(["fabric-loader-0.16.14-1.20.1", config.nickname, config.ram]);
+  //runMinecraft(["fabric-loader-0.16.14-1.20.1", config.nickname, config.ram]);
+  mcLaunch();
 });
 
 ipcMain.handle("add-to-configs", async (event, params: Config[]) => {
@@ -211,7 +213,6 @@ ipcMain.handle("download-minecraft", async () => {
   await restoreMinecraft();
   return false;
 });
-ipcMain.handle("ui-loaded", () => {});
 ipcMain.handle("is-launched", () => {
   return Status.getStatus();
 });

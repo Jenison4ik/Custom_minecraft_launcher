@@ -36,6 +36,8 @@
     "wait-on": "^8.0.4"
   },
   "dependencies": {
+    "@xmcl/core": "^2.15.1",
+    "@xmcl/installer": "^6.1.2",
     "axios": "^1.10.0",
     "electron-updater": "^6.6.2",
     "extract-zip": "^2.0.1",

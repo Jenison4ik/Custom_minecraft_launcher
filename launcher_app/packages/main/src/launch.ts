@@ -33,7 +33,7 @@ export async function runMinecraft(params: LaunchArgs) {
 
   try {
     addServer();
-    sendDownloadStatus("Checking Java21", 10, true);
+    sendDownloadStatus("Checking Java22", 10, true);
 
     const requestedVersionId = params[0];
     const NICKNAME = params[1];
