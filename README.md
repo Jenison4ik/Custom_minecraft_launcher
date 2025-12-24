@@ -126,16 +126,11 @@ docker compose up -d --build
   ```json
   { "version": "x.x.x", "url": "https://jenison.ru/download" }
 
-
+**Приятной игры! 🎮**
 
 ## 📄 Лицензия
 
 MIT License
 
-**Приятной игры! 🎮**
 
-# Запуск контейнера для серверной части приложения
 
-```bash
-docker run -d --env-file .env -p $(grep PORT .env | cut -d '=' -f2):$(grep PORT .env | cut -d '=' -f2) --name server_mc_container server_mc
-```
