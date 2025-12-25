@@ -12,107 +12,190 @@ import sendDownloadStatus from "../sendDownloadStatus";
 import Status from "../status";
 import mcInstall from "../mcInsttaller";
 
-export default async function mcLaunch() {
+/* ──────────────────────────────
+   CONSTANTS
+────────────────────────────── */
+
+const PROGRESS_CHECK_JAVA = 10;
+const PROGRESS_PARSE_VERSION = 20;
+const PROGRESS_LAUNCH = 30;
+const PROGRESS_INIT_SESSION = 50;
+const PROGRESS_FORGE = 60;
+const PROGRESS_LOAD_GRAPHICS = 80;
+const PROGRESS_COMPLETE = 100;
+
+/* ──────────────────────────────
+   HELPER FUNCTIONS
+────────────────────────────── */
+
+interface Config {
+  id?: string;
+  disableDownload?: boolean;
+  [key: string]: unknown;
+}
+
+function getMainWindow(): BrowserWindow | null {
   const windows = BrowserWindow.getAllWindows();
-  if (windows.length === 0) {
+  return windows.length > 0 ? windows[0] : null;
+}
+
+function notifyLaunchStatus(isLaunching: boolean): void {
+  const window = getMainWindow();
+  if (window) {
+    window.webContents.send("launch-minecraft", isLaunching);
+  }
+}
+
+function cleanupOnError(errorMessage: string): void {
+  sendError(errorMessage);
+  sendDownloadStatus("Ошибка при запуске Minecraft", 0, false);
+  notifyLaunchStatus(false);
+  Status.setStatus(false);
+}
+
+function loadConfig(): Config {
+  const configPath = getConfig();
+  const configContent = fs.readFileSync(configPath, "utf-8");
+  return JSON.parse(configContent);
+}
+
+function validateConfig(config: Config): void {
+  if (!config.id || typeof config.id !== "string") {
+    throw new Error("Не указана версия Minecraft в конфигурации");
+  }
+}
+
+function setupProcessHandlers(
+  proc: ChildProcess,
+  onExit?: (code: number | null, signal: string | null) => void
+): void {
+  proc.stdout?.on("data", (data: Buffer) => {
+    const line = data.toString();
+    console.log("[MC]", line);
+
+    if (line.includes("Setting user")) {
+      sendDownloadStatus("Инициализация сессии", PROGRESS_INIT_SESSION, true);
+    }
+    if (line.includes("LWJGL") || line.includes("OpenGL")) {
+      sendDownloadStatus("Загрузка графики", PROGRESS_LOAD_GRAPHICS, true);
+    }
+    if (
+      line.includes("OpenAL initialized") ||
+      line.includes("Sound engine started") ||
+      line.includes("Successfully loaded")
+    ) {
+      sendDownloadStatus("Minecraft запущен", PROGRESS_COMPLETE, false);
+    }
+  });
+
+  proc.stderr?.on("data", (data: Buffer) => {
+    const line = data.toString();
+    console.error("[MC ERROR]", line);
+
+    // Forge часто выводит важную информацию в stderr
+    if (
+      line.includes("Launching wrapped minecraft") ||
+      line.includes("ModLauncher running")
+    ) {
+      sendDownloadStatus("Запуск Forge", PROGRESS_FORGE, true);
+    }
+  });
+
+  proc.on("error", (error: Error) => {
+    cleanupOnError("Ошибка при запуске Minecraft: " + error.message);
+  });
+
+  proc.on("exit", (code: number | null, signal: string | null) => {
+    console.log(`Minecraft ended with code: ${code}, signal: ${signal}`);
+    sendDownloadStatus("Minecraft завершен", 0, false);
+    notifyLaunchStatus(false);
+    Status.setStatus(false);
+    if (onExit) {
+      onExit(code, signal);
+    }
+  });
+}
+
+/* ──────────────────────────────
+   MAIN FUNCTION
+────────────────────────────── */
+
+export default async function mcLaunch() {
+  const window = getMainWindow();
+  if (!window) {
     sendError("Окно приложения не найдено");
     return;
   }
-  const window = windows[0];
-  window.webContents.send("launch-minecraft", true);
+
+  notifyLaunchStatus(true);
   Status.setStatus(true);
 
   try {
-    sendDownloadStatus("Проверка Java25", 10, true);
-    const java21Path = await ensureJava21();
+    // Проверка Java
+    sendDownloadStatus("Проверка Java", PROGRESS_CHECK_JAVA, true);
+    let javaPath: string;
 
-    const configPath = getConfig();
-    const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-    const BASE_DIR = path.join(app.getPath("userData"), mcPath);
-
-    //Проверка и докачка файлов
-    const data = fs.readFileSync(configPath, "utf-8");
-    const configs = JSON.parse(data);
-    const disableDownload = configs.disableDownload ?? false;
-    if (!disableDownload) {
-      mcInstall(config.id);
+    try {
+      javaPath = await ensureJava21();
+    } catch (javaError) {
+      const errorMessage =
+        javaError instanceof Error
+          ? javaError.message
+          : "Неизвестная ошибка установки Java";
+      cleanupOnError(
+        `Не удалось установить Java: ${errorMessage}. Пожалуйста, установите Java вручную или проверьте интернет-соединение.`
+      );
+      return;
     }
 
-    sendDownloadStatus("Парсинг версии Minecraft", 20, true);
+    // Загрузка и валидация конфигурации
+    const config = loadConfig();
+    validateConfig(config);
+
+    const BASE_DIR = path.join(app.getPath("userData"), mcPath);
+    const versionId = config.id!;
+
+    // Установка Minecraft (если не отключена)
+    if (!config.disableDownload) {
+      try {
+        await mcInstall(versionId);
+      } catch (installError) {
+        const errorMessage =
+          installError instanceof Error
+            ? installError.message
+            : String(installError);
+        throw new Error(`Ошибка установки Minecraft: ${errorMessage}`);
+      }
+    }
+
+    // Парсинг версии
+    sendDownloadStatus(
+      "Парсинг версии Minecraft",
+      PROGRESS_PARSE_VERSION,
+      true
+    );
     const resolvedVersion: ResolvedVersion = await Version.parse(
       BASE_DIR,
-      config.id
+      versionId
     );
 
     console.log("Resolved Version:", resolvedVersion);
     console.log("Base Dir:", BASE_DIR);
-    console.log("Java Path:", java21Path);
-    console.log("Version ID:", config.id);
+    console.log("Java Path:", javaPath);
+    console.log("Version ID:", versionId);
 
-    sendDownloadStatus("Запуск Minecraft", 30, true);
+    // Запуск Minecraft
+    sendDownloadStatus("Запуск Minecraft", PROGRESS_LAUNCH, true);
     const proc: ChildProcess = await launch({
       gamePath: BASE_DIR,
-      javaPath: java21Path,
-      version: config.id,
+      javaPath: javaPath,
+      version: versionId,
     });
 
-    proc.stdout?.on("data", (data: Buffer) => {
-      const line = data.toString();
-      console.log("[MC]", line);
-
-      if (line.includes("Setting user"))
-        sendDownloadStatus("Инициализация сессии", 50, true);
-      if (line.includes("LWJGL") || line.includes("OpenGL"))
-        sendDownloadStatus("Загрузка графики", 80, true);
-      if (
-        line.includes("OpenAL initialized") ||
-        line.includes("Sound engine started") ||
-        line.includes("Successfully loaded")
-      )
-        sendDownloadStatus("Minecraft запущен", 100, false);
-    });
-
-    proc.stderr?.on("data", (data: Buffer) => {
-      const line = data.toString();
-      console.error("[MC ERROR]", line);
-
-      // Forge часто выводит важную информацию в stderr
-      if (
-        line.includes("Launching wrapped minecraft") ||
-        line.includes("ModLauncher running")
-      ) {
-        sendDownloadStatus("Запуск Forge", 60, true);
-      }
-    });
-
-    proc.on("error", (error: Error) => {
-      sendError("Ошибка при запуске Minecraft: " + error.message);
-      sendDownloadStatus("Ошибка при запуске Minecraft", 0, false);
-      const windows = BrowserWindow.getAllWindows();
-      if (windows.length > 0) {
-        windows[0].webContents.send("launch-minecraft", false);
-      }
-      Status.setStatus(false);
-    });
-
-    proc.on("exit", (code: number | null, signal: string | null) => {
-      console.log(`Minecraft ended with code: ${code}, signal: ${signal}`);
-      sendDownloadStatus("Minecraft завершен", 0, false);
-      const windows = BrowserWindow.getAllWindows();
-      if (windows.length > 0) {
-        windows[0].webContents.send("launch-minecraft", false);
-      }
-      Status.setStatus(false);
-    });
+    setupProcessHandlers(proc);
   } catch (e) {
     console.error("Launch error:", e);
     const errorMessage = e instanceof Error ? e.message : String(e);
-    sendError("Ошибка при запуске Minecraft: " + errorMessage);
-    sendDownloadStatus("Ошибка при запуске Minecraft", 0, false);
-    const windows = BrowserWindow.getAllWindows();
-    if (windows.length > 0) {
-      windows[0].webContents.send("launch-minecraft", false);
-    }
-    Status.setStatus(false);
+    cleanupOnError("Ошибка при запуске Minecraft: " + errorMessage);
   }
 }
