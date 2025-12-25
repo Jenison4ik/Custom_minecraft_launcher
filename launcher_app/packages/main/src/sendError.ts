@@ -6,7 +6,7 @@ export default function sendError(
 ) {
   type = type ?? "error";
 
-  console.log(message);
+  //console.log(message);
 
   const windows = BrowserWindow.getAllWindows();
   if (windows.length > 0) {

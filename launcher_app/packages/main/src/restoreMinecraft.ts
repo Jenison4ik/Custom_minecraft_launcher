@@ -2,7 +2,7 @@ import { BrowserWindow } from "electron";
 import downloadMinecraft from "./downloadMinecraft";
 import sendError from "./sendError";
 import Status from "./status";
-import mcInstall from "./mcInsttaller/mcInstaller";
+import mcInstall from "./mcInsttaller";
 
 // export default async function restoreMinecraft() {
 //   const window = BrowserWindow.getAllWindows()[0];
@@ -17,6 +17,7 @@ import mcInstall from "./mcInsttaller/mcInstaller";
 //     Status.setStatus(false);
 //   }
 // }
+
 export default async function restoreMinecraft() {
-  await mcInstall();
+  await mcInstall("1.20.1");
 }

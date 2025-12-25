@@ -13,7 +13,8 @@ import sendError from "./sendError";
 import properties from "./launcherProperties";
 import restoreMinecraft from "./restoreMinecraft";
 import Status from "./status";
-import mcLaunch from "./mcLaunch/mcLaunch";
+import mcLaunch from "./mcLaunch";
+import mcInstall from "./mcInsttaller";
 
 const configPath = getConfig();
 const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
@@ -37,7 +38,10 @@ autoUpdater.autoDownload = false;
 autoUpdater.on("update-downloaded", () => {
   updateReadyToInstall = true;
   sendDownloadStatus("Обновление скачано. Готово к установке.", 100, false);
-  win.webContents.send("launch-minecraft", false);
+  const windows = BrowserWindow.getAllWindows();
+  if (windows.length > 0) {
+    windows[0].webContents.send("launch-minecraft", false);
+  }
   dialog
     .showMessageBox({
       type: "info",
@@ -70,7 +74,10 @@ autoUpdater.on("update-available", (info) => {
       if (result.response === 0) {
         autoUpdater.downloadUpdate();
         sendDownloadStatus("Начинается загрузка обновления...", 0, true);
-        win.webContents.send("launch-minecraft", true);
+        const windows = BrowserWindow.getAllWindows();
+        if (windows.length > 0) {
+          windows[0].webContents.send("launch-minecraft", true);
+        }
       }
     });
 });
@@ -90,7 +97,10 @@ autoUpdater.on("error", (error) => {
     `Ошибка автообновления: ${error ? error.message : "Неизвестная ошибка"}`
   );
   sendDownloadStatus("Ошибка во время загрузки", Math.floor(0), false);
-  win.webContents.send("launch-minecraft", false);
+  const windows = BrowserWindow.getAllWindows();
+  if (windows.length > 0) {
+    windows[0].webContents.send("launch-minecraft", false);
+  }
 });
 
 export function addToConfig(configs: Config[]) {
@@ -104,7 +114,8 @@ export function addToConfig(configs: Config[]) {
     Object.assign(config, JSON.parse(fs.readFileSync(configPath, "utf-8")));
     return;
   } catch (e) {
-    console.log("Error while writing to config, details: " + e);
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    console.log("Error while writing to config, details: " + errorMessage);
     return;
   }
 }
@@ -170,7 +181,8 @@ app.whenReady().then(() => {
   try {
     createLauncherDirectory();
   } catch (e) {
-    sendError(`${e}\n`);
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    sendError(`Ошибка создания директории лаунчера: ${errorMessage}\n`);
   }
 });
 
@@ -203,14 +215,15 @@ ipcMain.handle("add-to-configs", async (event, params: Config[]) => {
   try {
     addToConfig(params);
   } catch (e) {
-    console.log(`Can't save configs at config.json error: ${e}`);
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    console.log(`Can't save configs at config.json error: ${errorMessage}`);
   }
 });
 ipcMain.handle("open-launcher-dir", () => {
   openLauncherDir();
 });
 ipcMain.handle("download-minecraft", async () => {
-  await restoreMinecraft();
+  await mcInstall(config.id);
   return false;
 });
 ipcMain.handle("is-launched", () => {

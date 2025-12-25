@@ -20,7 +20,12 @@ export default function ErrorToasts() {
         { id: newErrorId, message, type, isFade: false },
         ...prevErrors,
       ]);
-      console.error("Error received from API: ", message);
+      console[type === "error" ? "error" : "log"](
+        type === "error"
+          ? "Error received from API: "
+          : "Message received from API",
+        message
+      );
 
       setTimeout(() => {
         setErrors((prevErrors) => {

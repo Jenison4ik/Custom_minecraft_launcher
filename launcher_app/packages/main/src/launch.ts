@@ -27,7 +27,12 @@ type FilesObject = {
 };
 
 export async function runMinecraft(params: LaunchArgs) {
-  const window = BrowserWindow.getAllWindows()[0];
+  const windows = BrowserWindow.getAllWindows();
+  if (windows.length === 0) {
+    sendError("Окно приложения не найдено");
+    return;
+  }
+  const window = windows[0];
   window.webContents.send("launch-minecraft", true);
   Status.setStatus(true);
 
@@ -292,14 +297,21 @@ export async function runMinecraft(params: LaunchArgs) {
     mc.on("exit", (code: number) => {
       console.log(`Minecraft завершен с кодом: ${code}`);
       sendDownloadStatus("Minecraft завершен", 0, false);
-      window.webContents.send("launch-minecraft", false);
+      const windows = BrowserWindow.getAllWindows();
+      if (windows.length > 0) {
+        windows[0].webContents.send("launch-minecraft", false);
+      }
       Status.setStatus(false);
     });
   } catch (e) {
     console.error("Launch error:", e);
-    sendError("Ошибка при запуске Minecraft: " + e);
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    sendError("Ошибка при запуске Minecraft: " + errorMessage);
     sendDownloadStatus("Ошибка при запуске Minecraft", 0, false);
-    window.webContents.send("launch-minecraft", false);
+    const windows = BrowserWindow.getAllWindows();
+    if (windows.length > 0) {
+      windows[0].webContents.send("launch-minecraft", false);
+    }
     Status.setStatus(false);
   }
 }
