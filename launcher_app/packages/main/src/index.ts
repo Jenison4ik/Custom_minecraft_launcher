@@ -15,6 +15,7 @@ import restoreMinecraft from "./restoreMinecraft";
 import Status from "./status";
 import mcLaunch from "./mcLaunch";
 import mcInstall from "./mcInsttaller";
+import { Agent, setGlobalDispatcher } from "undici";
 
 const configPath = getConfig();
 const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
@@ -169,6 +170,9 @@ function forwardLogs() {
 app.whenReady().then(() => {
   let isConectionLost = false;
 
+  //Ограничения для http запросов undici
+  setGlobalDispatcher(new Agent({ connections: 1, pipelining: 1 }));
+
   createWindow();
   forwardLogs();
   autoUpdater.setFeedURL({
@@ -223,7 +227,17 @@ ipcMain.handle("open-launcher-dir", () => {
   openLauncherDir();
 });
 ipcMain.handle("download-minecraft", async () => {
-  await mcInstall(config.id);
+  const window = BrowserWindow.getAllWindows()[0];
+  try {
+    window.webContents.send("launch-minecraft", true);
+    Status.setStatus(true);
+    await mcInstall(config.id);
+  } catch (e) {
+  } finally {
+    window.webContents.send("launch-minecraft", false);
+    Status.setStatus(false);
+  }
+
   return false;
 });
 ipcMain.handle("is-launched", () => {

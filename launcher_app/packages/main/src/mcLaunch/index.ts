@@ -10,6 +10,7 @@ import { ensureJava21 } from "../downloadJava";
 import sendError from "../sendError";
 import sendDownloadStatus from "../sendDownloadStatus";
 import Status from "../status";
+import mcInstall from "../mcInsttaller";
 
 export default async function mcLaunch() {
   const windows = BrowserWindow.getAllWindows();
@@ -28,6 +29,14 @@ export default async function mcLaunch() {
     const configPath = getConfig();
     const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
     const BASE_DIR = path.join(app.getPath("userData"), mcPath);
+
+    //Проверка и докачка файлов
+    const data = fs.readFileSync(configPath, "utf-8");
+    const configs = JSON.parse(data);
+    const disableDownload = configs.disableDownload ?? false;
+    if (!disableDownload) {
+      mcInstall(config.id);
+    }
 
     sendDownloadStatus("Парсинг версии Minecraft", 20, true);
     const resolvedVersion: ResolvedVersion = await Version.parse(
@@ -77,7 +86,6 @@ export default async function mcLaunch() {
     });
 
     proc.on("error", (error: Error) => {
-      console.error("Ошибка процесса Minecraft:", error);
       sendError("Ошибка при запуске Minecraft: " + error.message);
       sendDownloadStatus("Ошибка при запуске Minecraft", 0, false);
       const windows = BrowserWindow.getAllWindows();
@@ -88,7 +96,7 @@ export default async function mcLaunch() {
     });
 
     proc.on("exit", (code: number | null, signal: string | null) => {
-      console.log(`Minecraft завершен с кодом: ${code}, сигнал: ${signal}`);
+      console.log(`Minecraft ended with code: ${code}, signal: ${signal}`);
       sendDownloadStatus("Minecraft завершен", 0, false);
       const windows = BrowserWindow.getAllWindows();
       if (windows.length > 0) {

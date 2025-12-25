@@ -13,7 +13,6 @@ export default function DownloadMcButton() {
   }, []);
 
   useEffect(() => {
-    console.log(isLaunch);
     let interval: NodeJS.Timeout | null = null;
 
     if (isLaunch) {
