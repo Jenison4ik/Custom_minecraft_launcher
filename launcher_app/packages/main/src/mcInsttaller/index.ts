@@ -15,7 +15,7 @@ import { setMaxListeners } from "events";
 import { mcPath } from "../createLauncherDir";
 import sendDownloadStatus from "../sendDownloadStatus";
 import sendError from "../sendError";
-import { getUndiciAgent } from "../undiciAgent";
+import { getUndiciAgent, setupUndiciAgent } from "../undiciAgent";
 
 import checkVersionFiles from "./checkVersion";
 import checkLibraryFiles from "./checkLibraries";
@@ -64,35 +64,36 @@ async function runTaskWithRetry<T>(
   retries = 7
 ): Promise<T> {
   let lastError: unknown;
+  let accumulatedProgress = 0; // суммарный прогресс за все предыдущие попытки
 
   for (let attempt = 1; attempt <= retries; attempt++) {
+    const task = createTask();
+
+    let interval: NodeJS.Timeout | null = null;
+    if (onProgress) {
+      interval = setInterval(() => {
+        const currentProgress = (task.progress ?? 0) + accumulatedProgress;
+        const currentTotal = task.total ?? 0;
+        onProgress(currentProgress, currentTotal);
+      }, 500);
+    }
+
     try {
-      const task = createTask();
-
-      let progressInterval: NodeJS.Timeout | null = null;
-      if (onProgress) {
-        progressInterval = setInterval(() => {
-          if (task.progress !== undefined && task.total !== undefined) {
-            onProgress(task.progress, task.total);
-          }
-        }, 100);
-      }
-
-      try {
-        const result = await task.startAndWait();
-        if (progressInterval) clearInterval(progressInterval);
-        return result;
-      } catch (e) {
-        if (progressInterval) clearInterval(progressInterval);
-        throw e;
-      }
+      const result = await task.startAndWait();
+      if (interval) clearInterval(interval);
+      accumulatedProgress += task.total ?? 0; // обновляем после успешного завершения
+      return result;
     } catch (e) {
+      if (interval) clearInterval(interval);
       lastError = e;
       console.warn(`Retry ${attempt}/${retries}`, e);
 
       if (isChecksumNotMatchError(e as any)) {
         deleteCorruptedFile(e as InstallationError);
       }
+
+      // добавляем прогресс, который Task успел пройти до ошибки
+      accumulatedProgress += task.progress ?? 0;
 
       if (attempt < retries) {
         await new Promise((r) => setTimeout(r, 1500));
@@ -109,7 +110,7 @@ async function runTaskWithRetry<T>(
 
 export default async function mcInstall(versionId: MinecraftVersion["id"]) {
   setMaxListeners(Infinity);
-  const dispatcher = getUndiciAgent({ connections: DOWNLOAD_CONCURRENCY }); // ⬅ ОБЯЗАТЕЛЬНО ПЕРВЫМ
+  const dispatcher = setupUndiciAgent({ connections: DOWNLOAD_CONCURRENCY }); // ⬅ ОБЯЗАТЕЛЬНО ПЕРВЫМ
 
   const mcDir: MinecraftLocation = path.join(app.getPath("userData"), mcPath);
 
@@ -160,14 +161,17 @@ export default async function mcInstall(versionId: MinecraftVersion["id"]) {
       sendDownloadStatus("Установка версии Minecraft...", 0, true);
 
       resolvedVersion = await runTaskWithRetry(
-        () =>
-          installVersionTask(versionMeta, mcDir, { dispatcher: dispatcher }),
+        () => installVersionTask(versionMeta, mcDir),
         (progress, total) => {
           const percent = Math.min(
             33,
             total ? Math.floor((progress / total) * 33) : progress
           );
-          sendDownloadStatus("Загрузка версии...", percent, true);
+          sendDownloadStatus(
+            `Загрузка версии Minecraft ${Math.floor(progress / 1048576)} Мб из ${Math.floor(total / 1048576)} Мб`,
+            percent,
+            true
+          );
         }
       );
     } else {
@@ -185,7 +189,6 @@ export default async function mcInstall(versionId: MinecraftVersion["id"]) {
         () =>
           installAssetsTask(resolvedVersion!, {
             assetsDownloadConcurrency: DOWNLOAD_CONCURRENCY,
-            dispatcher: dispatcher,
           }),
         (progress, total) => {
           const percent =
@@ -194,7 +197,11 @@ export default async function mcInstall(versionId: MinecraftVersion["id"]) {
               33,
               total ? Math.floor((progress / total) * 33) : progress
             );
-          sendDownloadStatus("Загрузка ассетов...", percent, true);
+          sendDownloadStatus(
+            `Загрузка ассетов ${Math.floor(progress / 1048576)} Мб из ${Math.floor(total / 1048576)} Мб`,
+            percent,
+            true
+          );
         }
       );
     }
@@ -208,7 +215,6 @@ export default async function mcInstall(versionId: MinecraftVersion["id"]) {
         () =>
           installLibrariesTask(resolvedVersion!, {
             librariesDownloadConcurrency: DOWNLOAD_CONCURRENCY,
-            dispatcher: dispatcher,
           }),
         (progress, total) => {
           const percent =
@@ -217,7 +223,11 @@ export default async function mcInstall(versionId: MinecraftVersion["id"]) {
               34,
               total ? Math.floor((progress / total) * 34) : progress
             );
-          sendDownloadStatus("Загрузка библиотек...", percent, true);
+          sendDownloadStatus(
+            `Загрузка библиотек ${Math.floor(progress / 1048576)} Мб из ${Math.floor(total / 1048576)} Мб`,
+            percent,
+            true
+          );
         }
       );
     }

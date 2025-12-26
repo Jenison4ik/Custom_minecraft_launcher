@@ -1,4 +1,4 @@
-import { Agent } from "undici";
+import { Agent, setGlobalDispatcher } from "undici";
 
 /* ──────────────────────────────
    CONSTANTS
@@ -26,7 +26,8 @@ export interface UndiciAgentOptions {
    SINGLETON STATE
 ────────────────────────────── */
 
-let singletonAgent: Agent | null = null;
+let globalAgent: Agent | null = null;
+let isDispatcherSet = false;
 
 /* ──────────────────────────────
    INTERNAL FACTORY
@@ -38,6 +39,8 @@ function createAgent(options: UndiciAgentOptions): Agent {
     pipelining: options.pipelining ?? DEFAULT_PIPELINING,
     headersTimeout: options.headersTimeout ?? DEFAULT_HEADERS_TIMEOUT,
     bodyTimeout: options.bodyTimeout ?? DEFAULT_BODY_TIMEOUT,
+    keepAliveTimeout: options.headersTimeout ?? DEFAULT_CONNECT_TIMEOUT, // таймаут неактивного сокета
+    keepAliveMaxTimeout: 600_000,
   });
 }
 
@@ -46,13 +49,35 @@ function createAgent(options: UndiciAgentOptions): Agent {
 ────────────────────────────── */
 
 /**
- * Возвращает singleton undici Agent
- * ❗ НИЧЕГО глобально не устанавливает
+ * Возвращает singleton Agent
+ * Создаётся только один раз за всё время жизни процесса
  */
 export function getUndiciAgent(options: UndiciAgentOptions = {}): Agent {
-  if (!singletonAgent) {
-    singletonAgent = createAgent(options);
+  if (!globalAgent) {
+    globalAgent = createAgent(options);
   }
 
-  return singletonAgent;
+  return globalAgent;
+}
+
+/**
+ * Устанавливает глобальный dispatcher (один раз)
+ * Повторные вызовы безопасны
+ */
+export function setupUndiciAgent(options: UndiciAgentOptions = {}): Agent {
+  const agent = getUndiciAgent(options);
+
+  if (!isDispatcherSet) {
+    setGlobalDispatcher(agent);
+    isDispatcherSet = true;
+  }
+
+  return agent;
+}
+
+/**
+ * Быстрая настройка с дефолтами
+ */
+export function setupDefaultUndiciAgent(): Agent {
+  return setupUndiciAgent();
 }
