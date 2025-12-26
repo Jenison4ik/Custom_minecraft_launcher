@@ -10,12 +10,12 @@ import { Task } from "@xmcl/task";
 import { app } from "electron";
 import path from "path";
 import fs from "fs";
-import { Agent, setGlobalDispatcher } from "undici";
 import { setMaxListeners } from "events";
 
 import { mcPath } from "../createLauncherDir";
 import sendDownloadStatus from "../sendDownloadStatus";
 import sendError from "../sendError";
+import { getUndiciAgent } from "../undiciAgent";
 
 import checkVersionFiles from "./checkVersion";
 import checkLibraryFiles from "./checkLibraries";
@@ -34,22 +34,6 @@ import {
 ────────────────────────────── */
 
 const DOWNLOAD_CONCURRENCY = 1;
-
-/* ──────────────────────────────
-   NETWORK SETUP (LOW LEVEL)
-────────────────────────────── */
-
-function setupNetworkLimits() {
-  const agent = new Agent({
-    connections: DOWNLOAD_CONCURRENCY, // 🔒 HTTP уровень
-    pipelining: 1,
-    connectTimeout: 60_000,
-    headersTimeout: 300_000,
-    bodyTimeout: 300_000,
-  });
-
-  setGlobalDispatcher(agent);
-}
 
 /* ──────────────────────────────
    HELPERS
@@ -125,7 +109,7 @@ async function runTaskWithRetry<T>(
 
 export default async function mcInstall(versionId: MinecraftVersion["id"]) {
   setMaxListeners(Infinity);
-  setupNetworkLimits(); // ⬅ ОБЯЗАТЕЛЬНО ПЕРВЫМ
+  const dispatcher = getUndiciAgent({ connections: DOWNLOAD_CONCURRENCY }); // ⬅ ОБЯЗАТЕЛЬНО ПЕРВЫМ
 
   const mcDir: MinecraftLocation = path.join(app.getPath("userData"), mcPath);
 
@@ -176,7 +160,8 @@ export default async function mcInstall(versionId: MinecraftVersion["id"]) {
       sendDownloadStatus("Установка версии Minecraft...", 0, true);
 
       resolvedVersion = await runTaskWithRetry(
-        () => installVersionTask(versionMeta, mcDir),
+        () =>
+          installVersionTask(versionMeta, mcDir, { dispatcher: dispatcher }),
         (progress, total) => {
           const percent = Math.min(
             33,
@@ -200,6 +185,7 @@ export default async function mcInstall(versionId: MinecraftVersion["id"]) {
         () =>
           installAssetsTask(resolvedVersion!, {
             assetsDownloadConcurrency: DOWNLOAD_CONCURRENCY,
+            dispatcher: dispatcher,
           }),
         (progress, total) => {
           const percent =
@@ -222,6 +208,7 @@ export default async function mcInstall(versionId: MinecraftVersion["id"]) {
         () =>
           installLibrariesTask(resolvedVersion!, {
             librariesDownloadConcurrency: DOWNLOAD_CONCURRENCY,
+            dispatcher: dispatcher,
           }),
         (progress, total) => {
           const percent =

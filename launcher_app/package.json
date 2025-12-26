@@ -44,7 +44,8 @@
     "prismarine-nbt": "^2.7.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^7.9.1"
+    "react-router-dom": "^7.9.1",
+    "undici": "^4.16.0"
   },
   "build": {
     "appId": "ru.jenison",

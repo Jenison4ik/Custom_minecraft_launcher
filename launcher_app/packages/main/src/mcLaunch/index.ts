@@ -6,7 +6,7 @@ import getConfig from "../getConfigPath";
 import fs from "fs";
 import { launch } from "@xmcl/core";
 import { ChildProcess } from "child_process";
-import { ensureJava21 } from "../downloadJava";
+import { ensureJava } from "../javaInstaller";
 import sendError from "../sendError";
 import sendDownloadStatus from "../sendDownloadStatus";
 import Status from "../status";
@@ -131,23 +131,6 @@ export default async function mcLaunch() {
   Status.setStatus(true);
 
   try {
-    // Проверка Java
-    sendDownloadStatus("Проверка Java", PROGRESS_CHECK_JAVA, true);
-    let javaPath: string;
-
-    try {
-      javaPath = await ensureJava21();
-    } catch (javaError) {
-      const errorMessage =
-        javaError instanceof Error
-          ? javaError.message
-          : "Неизвестная ошибка установки Java";
-      cleanupOnError(
-        `Не удалось установить Java: ${errorMessage}. Пожалуйста, установите Java вручную или проверьте интернет-соединение.`
-      );
-      return;
-    }
-
     // Загрузка и валидация конфигурации
     const config = loadConfig();
     validateConfig(config);
@@ -174,10 +157,11 @@ export default async function mcLaunch() {
       PROGRESS_PARSE_VERSION,
       true
     );
-    const resolvedVersion: ResolvedVersion = await Version.parse(
-      BASE_DIR,
-      versionId
-    );
+    const resolvedVersion = await Version.parse(BASE_DIR, versionId);
+
+    // Проверка Java
+    sendDownloadStatus("Проверка Java", PROGRESS_CHECK_JAVA, true);
+    const javaPath = await ensureJava(resolvedVersion.javaVersion);
 
     console.log("Resolved Version:", resolvedVersion);
     console.log("Base Dir:", BASE_DIR);

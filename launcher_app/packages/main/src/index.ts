@@ -1,21 +1,17 @@
 import { createLauncherDirectory } from "./createLauncherDir";
 import { app, BrowserWindow, ipcMain, dialog } from "electron";
-import { runMinecraft } from "./launch";
 import { join } from "path";
 import getConfig from "./getConfigPath";
 import fs from "fs";
 import os from "os";
 import { openLauncherDir } from "./openLauncherDir";
-// import { checkServerUpdate, initAutoUpdater } from "./updates";
 import { autoUpdater } from "electron-updater";
 import sendDownloadStatus from "./sendDownloadStatus";
 import sendError from "./sendError";
 import properties from "./launcherProperties";
-import restoreMinecraft from "./restoreMinecraft";
 import Status from "./status";
 import mcLaunch from "./mcLaunch";
 import mcInstall from "./mcInsttaller";
-import { Agent, setGlobalDispatcher } from "undici";
 
 const configPath = getConfig();
 const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
@@ -171,7 +167,7 @@ app.whenReady().then(() => {
   let isConectionLost = false;
 
   //Ограничения для http запросов undici
-  setGlobalDispatcher(new Agent({ connections: 1, pipelining: 1 }));
+  // setupDefaultUndiciAgent();
 
   createWindow();
   forwardLogs();
