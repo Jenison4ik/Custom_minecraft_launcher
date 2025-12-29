@@ -208,7 +208,7 @@ ipcMain.handle("get-mem-size", async () => {
 
 ipcMain.handle("run-minecraft", async () => {
   //runMinecraft(["fabric-loader-0.16.14-1.20.1", config.nickname, config.ram]);
-  mcLaunch();
+  mcLaunch(config);
 });
 
 ipcMain.handle("add-to-configs", async (event, params: Config[]) => {

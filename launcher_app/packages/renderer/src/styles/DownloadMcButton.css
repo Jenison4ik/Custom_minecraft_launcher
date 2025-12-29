@@ -1,0 +1,47 @@
+@font-face {
+  font-family: "FontOver";
+  src: url("../FontOver.otf") format("opentype");
+  font-style: normal;
+  font-weight: normal;
+}
+h1,
+h2,
+h3 {
+  font-family: FontOver, sans-serif;
+  font-size: 1rem;
+  color: #e0e0e0;
+  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+}
+
+input {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+html {
+  height: 100%;
+  font-size: 16px;
+  background: linear-gradient(180deg, #1e5128 -35%, #191a19 30%) center/cover no-repeat;
+}
+
+.restorebtn {
+  background-color: #363636;
+  color: #777e87;
+  width: 20%;
+  min-width: 250px;
+  height: 30px;
+  padding: 5px 10px;
+  box-sizing: content-box;
+  border-radius: 5px;
+  transition: background-color ease-out 0.2s;
+}
+.restorebtn:hover {
+  background-color: #33363d;
+  cursor: pointer;
+}
+.restorebtn:disabled {
+  cursor: default;
+  filter: brightness(0.7);
+}
+.restorebtn:disabled:hover {
+  background-color: #363636;
+}/*# sourceMappingURL=DownloadMcButton.css.map */

@@ -11,6 +11,7 @@ import sendError from "../sendError";
 import sendDownloadStatus from "../sendDownloadStatus";
 import Status from "../status";
 import mcInstall from "../mcInsttaller";
+import { LauncherConfig } from "../types/LauncherConfig";
 
 /* ──────────────────────────────
    CONSTANTS
@@ -51,12 +52,6 @@ function cleanupOnError(errorMessage: string): void {
   sendDownloadStatus("Ошибка при запуске Minecraft", 0, false);
   notifyLaunchStatus(false);
   Status.setStatus(false);
-}
-
-function loadConfig(): Config {
-  const configPath = getConfig();
-  const configContent = fs.readFileSync(configPath, "utf-8");
-  return JSON.parse(configContent);
 }
 
 function validateConfig(config: Config): void {
@@ -120,7 +115,7 @@ function setupProcessHandlers(
    MAIN FUNCTION
 ────────────────────────────── */
 
-export default async function mcLaunch() {
+export default async function mcLaunch(config: LauncherConfig) {
   const window = getMainWindow();
   if (!window) {
     sendError("Окно приложения не найдено");
@@ -132,8 +127,6 @@ export default async function mcLaunch() {
 
   try {
     // Загрузка и валидация конфигурации
-    const config = loadConfig();
-    validateConfig(config);
 
     const BASE_DIR = path.join(app.getPath("userData"), mcPath);
     const versionId = config.id!;
@@ -174,6 +167,7 @@ export default async function mcLaunch() {
       gamePath: BASE_DIR,
       javaPath: javaPath,
       version: versionId,
+      gameProfile: { name: config.nickname || "Player", id: "offline-id" },
     });
 
     setupProcessHandlers(proc);

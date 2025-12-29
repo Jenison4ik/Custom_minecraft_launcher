@@ -1,0 +1,44 @@
+* {
+  font-family: sans-serif;
+}
+
+h2 {
+  margin: 0;
+  padding: 0;
+  font-size: 1.2rem;
+}
+
+.error-box {
+  overflow: hidden;
+  box-sizing: border-box;
+  transition: all 0.3s ease-out;
+  color: rgb(255, 198, 198);
+  border: 1px solid rgb(255, 198, 198);
+  background-color: rgb(158, 82, 82);
+  padding: 20px 5px;
+  border-radius: 10px;
+  width: -moz-fit-content;
+  width: fit-content;
+  min-width: 200px;
+  max-width: 40vw;
+  height: auto;
+  flex: 0 0 auto;
+}
+.error-box.notification {
+  color: rgb(151, 236, 158);
+  border: 1px solid rgb(151, 236, 158);
+  background-color: rgb(39, 126, 46);
+}
+.error-box p {
+  margin: 0;
+  padding: 0;
+}
+
+.fade {
+  opacity: 0;
+  transition: 0.7s ease-out;
+  -webkit-transition: 0.7s ease-out;
+  -moz-transition: 0.7s ease-out;
+  -ms-transition: 0.7s ease-out;
+  -o-transition: 0.7s ease-out;
+}/*# sourceMappingURL=ErrorBox.css.map */
