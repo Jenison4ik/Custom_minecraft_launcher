@@ -10,7 +10,7 @@ import { ensureJava } from "../javaInstaller";
 import sendError from "../sendError";
 import sendDownloadStatus from "../sendDownloadStatus";
 import Status from "../status";
-import mcInstall from "../mcInsttaller";
+import mcInstall from "../mcInstaller";
 import { LauncherConfig } from "../types/LauncherConfig";
 
 /* ──────────────────────────────
@@ -28,13 +28,6 @@ const PROGRESS_COMPLETE = 100;
 /* ──────────────────────────────
    HELPER FUNCTIONS
 ────────────────────────────── */
-
-interface Config {
-  id?: string;
-  disableDownload?: boolean;
-  [key: string]: unknown;
-}
-
 function getMainWindow(): BrowserWindow | null {
   const windows = BrowserWindow.getAllWindows();
   return windows.length > 0 ? windows[0] : null;
@@ -52,12 +45,6 @@ function cleanupOnError(errorMessage: string): void {
   sendDownloadStatus("Ошибка при запуске Minecraft", 0, false);
   notifyLaunchStatus(false);
   Status.setStatus(false);
-}
-
-function validateConfig(config: Config): void {
-  if (!config.id || typeof config.id !== "string") {
-    throw new Error("Не указана версия Minecraft в конфигурации");
-  }
 }
 
 function setupProcessHandlers(
@@ -134,7 +121,7 @@ export default async function mcLaunch(config: LauncherConfig) {
     // Установка Minecraft (если не отключена)
     if (!config.disableDownload) {
       try {
-        await mcInstall(versionId);
+        await mcInstall(config);
       } catch (installError) {
         const errorMessage =
           installError instanceof Error

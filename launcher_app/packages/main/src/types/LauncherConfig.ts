@@ -13,5 +13,8 @@ export interface LauncherConfig {
 
   /** Версия Minecraft (например: 1.18.2) */
   id: string;
-  core: "fabric" | "forge" | "vanilla";
+  loader: {
+    type: "fabric" | "forge" | "vanilla";
+    version?: string;
+  };
 }

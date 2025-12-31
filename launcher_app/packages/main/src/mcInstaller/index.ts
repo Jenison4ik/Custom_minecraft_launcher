@@ -28,6 +28,8 @@ import {
   isErrorWithMessage,
   isFileError,
 } from "./types";
+import FabricInstaller from "./FabricInstaller";
+import { LauncherConfig } from "../types/LauncherConfig";
 
 /* ──────────────────────────────
    CONSTANTS
@@ -108,7 +110,9 @@ async function runTaskWithRetry<T>(
    MAIN INSTALL FUNCTION
 ────────────────────────────── */
 
-export default async function mcInstall(versionId: MinecraftVersion["id"]) {
+//export default async function mcInstall(versionId: MinecraftVersion["id"]) {
+export default async function mcInstall(config: LauncherConfig) {
+  const versionId = config.id;
   setMaxListeners(Infinity);
   const dispatcher = setupUndiciAgent({ connections: DOWNLOAD_CONCURRENCY }); // ⬅ ОБЯЗАТЕЛЬНО ПЕРВЫМ
 
@@ -177,7 +181,9 @@ export default async function mcInstall(versionId: MinecraftVersion["id"]) {
     } else {
       resolvedVersion = await Version.parse(mcDir, versionId);
     }
-
+    if (config.loader.type === "fabric") {
+      resolvedVersion = await FabricInstaller(config, mcDir);
+    }
     /* ───── ASSETS ───── */
 
     if (needAssets && resolvedVersion) {

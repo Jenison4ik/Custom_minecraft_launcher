@@ -1,4 +1,4 @@
-import { createLauncherDirectory } from "./createLauncherDir";
+import { createLauncherDirectory, mcPath } from "./createLauncherDir";
 import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import { join } from "path";
 import getConfig from "./getConfigPath";
@@ -11,7 +11,9 @@ import sendError from "./sendError";
 import properties from "./launcherProperties";
 import Status from "./status";
 import mcLaunch from "./mcLaunch";
-import mcInstall from "./mcInsttaller";
+import mcInstall from "./mcInstaller";
+
+import FabricInstaller from "./mcInstaller/FabricInstaller"; //TEST
 
 const configPath = getConfig();
 const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
@@ -223,18 +225,20 @@ ipcMain.handle("open-launcher-dir", () => {
   openLauncherDir();
 });
 ipcMain.handle("download-minecraft", async () => {
-  const window = BrowserWindow.getAllWindows()[0];
-  try {
-    window.webContents.send("launch-minecraft", true);
-    Status.setStatus(true);
-    await mcInstall(config.id);
-  } catch (e) {
-  } finally {
-    window.webContents.send("launch-minecraft", false);
-    Status.setStatus(false);
-  }
+  // const window = BrowserWindow.getAllWindows()[0];
+  // try {
+  //   window.webContents.send("launch-minecraft", true);
+  //   Status.setStatus(true);
+  //   await mcInstall(config.id);
+  // } catch (e) {
+  // } finally {
+  //   window.webContents.send("launch-minecraft", false);
+  //   Status.setStatus(false);
+  // }
 
-  return false;
+  // return false;
+
+  FabricInstaller(config, join(app.getPath("userData"), mcPath));
 });
 ipcMain.handle("is-launched", () => {
   return Status.getStatus();

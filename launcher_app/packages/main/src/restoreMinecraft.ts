@@ -2,7 +2,7 @@ import { BrowserWindow } from "electron";
 import downloadMinecraft from "./downloadMinecraft";
 import sendError from "./sendError";
 import Status from "./status";
-import mcInstall from "./mcInsttaller";
+import mcInstall from "./mcInstaller";
 
 // export default async function restoreMinecraft() {
 //   const window = BrowserWindow.getAllWindows()[0];
