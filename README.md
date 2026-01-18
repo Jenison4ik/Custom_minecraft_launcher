@@ -1,7 +1,7 @@
 # Custom Minecraft Launcher [CML]
 
 ![Stars](https://img.shields.io/github/stars/Jenison4ik/Custom_minecraft_launcher)
-
+![License](https://img.shields.io/badge/license-MIT-green)
 Лаунчер Minecraft для быстрого создания проектов с модами
 
 ❗ВАЖНО: На данный момент поддерживается только ядро Fabric
