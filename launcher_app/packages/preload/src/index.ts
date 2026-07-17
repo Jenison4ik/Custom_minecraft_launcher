@@ -45,4 +45,7 @@ contextBridge.exposeInMainWorld("launcherAPI", {
   getStatus: async () => {
     return await ipcRenderer.invoke("is-launched");
   },
+  openExternalUrl: (url: string) => {
+    ipcRenderer.invoke("open-external-url", url);
+  },
 });

@@ -260,36 +260,133 @@ export async function runMinecraft(params: LaunchArgs) {
     sendDownloadStatus("Запуск JVM", 30, true);
     const mc = spawn(JAVA_PATH, args, { cwd: BASE_DIR });
 
+    // Флаг для отслеживания прогресса
+    let currentProgress = 30;
+    let reachedRenderThread = false;
+    let lastUpdateTime = Date.now();
+    let minecraftLaunched = false;
+
+    // Таймер для постепенного обновления прогресса, если процесс зависает
+    const progressTimer = setInterval(() => {
+      const timeSinceLastUpdate = Date.now() - lastUpdateTime;
+      // Если прошло больше 5 секунд без обновления, постепенно увеличиваем прогресс
+      if (timeSinceLastUpdate > 5000 && currentProgress < 90) {
+        currentProgress = Math.min(currentProgress + 1, 90);
+        sendDownloadStatus(`Запуск Minecraft... ${currentProgress}%`, currentProgress, true);
+      }
+    }, 2000);
+
     mc.stdout.on("data", (data: Buffer) => {
       const line = data.toString();
       console.log("[MC]", line);
 
-      if (line.includes("Setting user"))
-        sendDownloadStatus("Инициализация сессии", 50, true);
-      if (line.includes("LWJGL") || line.includes("OpenGL"))
-        sendDownloadStatus("Загрузка графики", 80, true);
+      // Обновляем время последнего обновления
+      lastUpdateTime = Date.now();
+
+      // Инициализация Fabric
+      if (line.includes("Knot.init") || line.includes("FabricLoader")) {
+        sendDownloadStatus("Инициализация Fabric", 35, true);
+        currentProgress = 35;
+      }
+
+      // Загрузка модов и библиотек
+      if (line.includes("Loading") && line.includes("mod")) {
+        sendDownloadStatus("Загрузка модов", 40, true);
+        currentProgress = 40;
+      }
+
+      // Инициализация сессии
+      if (line.includes("Setting user") || line.includes("Authenticating")) {
+        sendDownloadStatus("Инициализация сессии", 45, true);
+        currentProgress = 45;
+      }
+
+      // Загрузка ресурсов
+      if (line.includes("Reloading") || line.includes("Resource reload")) {
+        sendDownloadStatus("Загрузка ресурсов", 50, true);
+        currentProgress = 50;
+      }
+
+      // Инициализация LWJGL/OpenGL
+      if (line.includes("LWJGL") || line.includes("OpenGL") || line.includes("GL_VERSION")) {
+        sendDownloadStatus("Инициализация графики", 60, true);
+        currentProgress = 60;
+      }
+
+      // Инициализация звука
+      if (line.includes("OpenAL initialized") || line.includes("Sound engine started")) {
+        sendDownloadStatus("Инициализация звука", 70, true);
+        currentProgress = 70;
+      }
+
+      // Рендер-тред запущен
+      if (line.includes("Render thread") && !reachedRenderThread) {
+        reachedRenderThread = true;
+        sendDownloadStatus("Запуск рендер-треда", 80, true);
+        currentProgress = 80;
+      }
+
+      // Minecraft полностью загружен
       if (
-        line.includes("OpenAL initialized") ||
-        line.includes("Sound engine started") ||
-        line.includes("Successfully loaded")
-      )
-        sendDownloadStatus("Minecraft запущен", 100, false);
+        !minecraftLaunched &&
+        (line.includes("Successfully loaded") ||
+        line.includes("Done") ||
+        (line.includes("Render thread") && reachedRenderThread))
+      ) {
+        minecraftLaunched = true;
+        clearInterval(progressTimer);
+        sendDownloadStatus("Minecraft запущен", 100, true);
+        currentProgress = 100;
+        
+        // Скрываем статус-бар через 20 секунд
+        setTimeout(() => {
+          sendDownloadStatus("Minecraft запущен", 100, false);
+        }, 20000);
+      }
     });
 
     mc.stderr.on("data", (data: Buffer) => {
       const line = data.toString();
       console.error("[MC ERROR]", line);
 
+      // Обновляем время последнего обновления
+      lastUpdateTime = Date.now();
+
       // Forge часто выводит важную информацию в stderr
-      if (
-        line.includes("Launching wrapped minecraft") ||
-        line.includes("ModLauncher running")
-      ) {
-        sendDownloadStatus("Запуск Forge", 60, true);
+      if (line.includes("Launching wrapped minecraft")) {
+        sendDownloadStatus("Запуск Forge", 40, true);
+        currentProgress = 40;
+      }
+      
+      if (line.includes("ModLauncher running") || line.includes("ModLauncher")) {
+        sendDownloadStatus("Инициализация ModLauncher", 45, true);
+        currentProgress = 45;
+      }
+
+      // Игнорируем некритичные ошибки (data fixer, registry и т.д.)
+      const nonCriticalErrors = [
+        "No data fixer registered",
+        "Registry.*was empty",
+        "Invalid path in mod resource-pack",
+        "Failed to load model",
+        "Reconfiguration failed",
+        "Unsupported JNI version",
+        "Failed to verify authentication", // Это нормально для офлайн режима
+      ];
+
+      const isNonCritical = nonCriticalErrors.some(pattern => {
+        const regex = new RegExp(pattern, "i");
+        return regex.test(line);
+      });
+
+      if (!isNonCritical && line.includes("ERROR")) {
+        // Критичные ошибки логируем, но не останавливаем процесс
+        console.error("[MC CRITICAL ERROR]", line);
       }
     });
 
     mc.on("exit", (code: number) => {
+      clearInterval(progressTimer);
       console.log(`Minecraft завершен с кодом: ${code}`);
       sendDownloadStatus("Minecraft завершен", 0, false);
       window.webContents.send("launch-minecraft", false);

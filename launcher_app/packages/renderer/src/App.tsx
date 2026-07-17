@@ -33,6 +33,7 @@ declare global {
       removeOnMinecraft: () => void;
       downloadMinecraft: () => Promise<boolean>;
       getStatus: () => Promise<boolean>;
+      openExternalUrl: (url: string) => void;
     };
   }
 }

@@ -1,5 +1,5 @@
 import { createLauncherDirectory } from "./createLauncherDir";
-import { app, BrowserWindow, ipcMain, dialog } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
 import { runMinecraft } from "./launch";
 import { join } from "path";
 import getConfig from "./getConfigPath";
@@ -214,4 +214,13 @@ ipcMain.handle("download-minecraft", async () => {
 ipcMain.handle("ui-loaded", () => {});
 ipcMain.handle("is-launched", () => {
   return Status.getStatus();
+});
+
+ipcMain.handle("open-external-url", async (event, url: string) => {
+  try {
+    await shell.openExternal(url);
+  } catch (error) {
+    console.error(`Failed to open external URL: ${url}`, error);
+    sendError(`Не удалось открыть ссылку: ${url}`);
+  }
 });

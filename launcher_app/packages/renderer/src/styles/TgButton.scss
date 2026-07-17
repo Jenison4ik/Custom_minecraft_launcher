@@ -1,0 +1,54 @@
+.tg-button {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 15px;
+  background: #1c93e3;
+  font-weight: bold;
+  color: #fff;
+  gap: 7px;
+  border-radius: 15px;
+  cursor: pointer;
+  border: none;
+  overflow: hidden;
+  transition: all 0.3s ease-out;
+  &:hover{
+    background: #11669e;
+  }
+  img {
+    width: 20px;
+    position: relative;
+    z-index: 2;
+  }
+
+  & > * {
+    position: relative;
+    z-index: 2;
+  }
+
+  &::before {
+    content: "";
+    position: absolute;
+    background-color: #fff;
+    bottom: -20px;
+    top: -20px;
+    width: 30px;
+    filter: blur(13px);
+    transform: rotate(-30deg);
+    left: -60px;
+    animation: shine-animation 4s linear 8s infinite normal backwards;
+    z-index: 1;
+  }
+
+}
+
+@keyframes shine-animation {
+  0% {
+    left: -60px;
+  }
+  100% {
+    left: 810%;
+  }
+}
+
