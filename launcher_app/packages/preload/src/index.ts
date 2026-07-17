@@ -1,16 +1,16 @@
 import { contextBridge, ipcRenderer } from "electron";
+import { CHANNELS } from "@jenison/shared";
+import type { ConfigEntry, ErrorToastType, LauncherAPI } from "@jenison/shared";
 
-contextBridge.exposeInMainWorld("launcherAPI", {
-  getConfigs: () => ipcRenderer.invoke("get-configs"),
-  runMinecraft: () => ipcRenderer.invoke("run-minecraft"),
-  openLauncherDir: () => ipcRenderer.invoke("open-launcher-dir"),
-  uiLoaded: () => ipcRenderer.invoke("ui-loaded"),
-  addToConfigs: (params: any[]) => ipcRenderer.invoke("add-to-configs", params),
-  getMemSize: () => ipcRenderer.invoke("get-mem-size"),
-  onError: (
-    callback: (message: string, type: "error" | "notification") => void
-  ) => {
-    ipcRenderer.on("show-error-toast", (event, message, type) =>
+const launcherAPI: LauncherAPI = {
+  getConfigs: () => ipcRenderer.invoke(CHANNELS.getConfigs),
+  runMinecraft: () => ipcRenderer.invoke(CHANNELS.runMinecraft),
+  openLauncherDir: () => ipcRenderer.invoke(CHANNELS.openLauncherDir),
+  addToConfigs: (params: ConfigEntry[]) =>
+    ipcRenderer.invoke(CHANNELS.addToConfigs, params),
+  getMemSize: () => ipcRenderer.invoke(CHANNELS.getMemSize),
+  onError: (callback: (message: string, type: ErrorToastType) => void) => {
+    ipcRenderer.on(CHANNELS.showErrorToast, (_event, message, type) =>
       callback(message, type)
     );
   },
@@ -22,8 +22,8 @@ contextBridge.exposeInMainWorld("launcherAPI", {
     ) => void
   ) => {
     ipcRenderer.on(
-      "show-download-status",
-      (event, message, progress, isDownloading) =>
+      CHANNELS.showDownloadStatus,
+      (_event, message, progress, isDownloading) =>
         callback(message, progress, isDownloading)
     );
   },
@@ -32,17 +32,18 @@ contextBridge.exposeInMainWorld("launcherAPI", {
       callback(status);
     };
 
-    ipcRenderer.on("launch-minecraft", listener);
+    ipcRenderer.on(CHANNELS.launchMinecraft, listener);
 
-    // Возвращаем функцию отписки
     return () => {
-      ipcRenderer.removeListener("launch-minecraft", listener);
+      ipcRenderer.removeListener(CHANNELS.launchMinecraft, listener);
     };
   },
-  downloadMinecraft: () => {
-    ipcRenderer.invoke("download-minecraft");
+  downloadMinecraft: async () => {
+    await ipcRenderer.invoke(CHANNELS.downloadMinecraft);
   },
   getStatus: async () => {
-    return await ipcRenderer.invoke("is-launched");
+    return await ipcRenderer.invoke(CHANNELS.isLaunched);
   },
-});
+};
+
+contextBridge.exposeInMainWorld("launcherAPI", launcherAPI);

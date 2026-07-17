@@ -4,14 +4,16 @@
   "description": "Jenison Launcher",
   "main": "dist/main/index.js",
   "scripts": {
-    "dev": "concurrently \"npm:dev:main\" \"npm:dev:preload\" \"npm:dev:renderer\"",
+    "dev": "concurrently \"npm:dev:shared\" \"npm:dev:main\" \"npm:dev:preload\" \"npm:dev:renderer\"",
+    "dev:shared": "tsc -p packages/shared -w",
     "dev:main": "tsc -p packages/main -w",
-    "dev:preload": "tsc -p packages/preload -w",
+    "dev:preload": "esbuild packages/preload/src/index.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload/index.js --watch",
     "dev:renderer": "vite -c packages/renderer/vite.config.ts",
     "start": "wait-on tcp:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .",
-    "build": "npm run build:main && npm run build:preload && npm run build:renderer",
+    "build": "npm run build:shared && npm run build:main && npm run build:preload && npm run build:renderer",
+    "build:shared": "tsc -p packages/shared",
     "build:main": "tsc -p packages/main && cpx config.json dist/main/",
-    "build:preload": "tsc -p packages/preload",
+    "build:preload": "esbuild packages/preload/src/index.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload/index.js",
     "build:renderer": "vite build -c packages/renderer/vite.config.ts",
     "pack": "npm run build && electron-builder "
   },
@@ -36,6 +38,7 @@
     "wait-on": "^8.0.4"
   },
   "dependencies": {
+    "@jenison/shared": "file:packages/shared",
     "@xmcl/core": "^2.15.1",
     "@xmcl/installer": "^6.1.2",
     "axios": "^1.10.0",
