@@ -8,27 +8,27 @@ import { MinecraftVersion } from "@xmcl/installer";
 import { isErrorWithMessage } from "./types";
 
 /**
- * Проверяет наличие и корректность версии Minecraft
- * @param mcDir - Директория Minecraft
- * @param version - ID версии для проверки
- * @returns ResolvedVersion если версия существует и корректна
- * @throws Error если версия не найдена или повреждена
+ * Checks that the Minecraft version exists and is valid
+ * @param mcDir - Minecraft directory
+ * @param version - Version ID to check
+ * @returns ResolvedVersion if the version exists and is valid
+ * @throws Error if the version is missing or corrupted
  */
 export default async function checkVersionFiles(
   mcDir: MinecraftLocation,
   version: MinecraftVersion["id"]
 ): Promise<ResolvedVersion> {
   try {
-    // Парсим версию
+    // Parse version
     const resolvedVersion: ResolvedVersion = await Version.parse(
       mcDir,
       version
     );
 
-    // Проверяем версию через diagnose
+    // Diagnose version
     const report = await diagnose(resolvedVersion.id, mcDir);
 
-    // Проверяем проблемы с версией (versionJson, minecraftJar)
+    // Check version issues (versionJson, minecraftJar)
     const versionIssues = report.issues.filter(
       (issue) => issue.role === "versionJson" || issue.role === "minecraftJar"
     );
@@ -37,11 +37,11 @@ export default async function checkVersionFiles(
       const issuesList = versionIssues
         .map((i) => {
           if ("file" in i && i.file) return i.file;
-          return `${i.role}: проблема обнаружена`;
+          return `${i.role}: issue detected`;
         })
         .join(", ");
       throw new Error(
-        `Обнаружены проблемы с версией ${version}: ${issuesList}`
+        `Version issues detected for ${version}: ${issuesList}`
       );
     }
 
@@ -53,11 +53,10 @@ export default async function checkVersionFiles(
       : String(error);
     if (
       errorMessage.includes("not found") ||
-      errorMessage.includes("не найдена") ||
       errorMessage.includes("Version not found")
     ) {
-      throw new Error(`Версия ${version} не найдена. Требуется установка.`);
+      throw new Error(`Version ${version} not found. Installation required.`);
     }
-    throw new Error(`Ошибка проверки версии ${version}: ${errorMessage}`);
+    throw new Error(`Version check failed for ${version}: ${errorMessage}`);
   }
 }

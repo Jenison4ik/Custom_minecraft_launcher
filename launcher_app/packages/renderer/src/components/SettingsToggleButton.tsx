@@ -7,9 +7,9 @@ export default function SettingsToggleButton() {
 
   const handleClick = () => {
     if (location.pathname === "/") {
-      navigate("/settings"); // если уже на settings → возвращаем на главную
+      navigate("/settings"); // on home → go to settings
     } else {
-      navigate("/"); // иначе переходим на settings
+      navigate("/"); // otherwise → go home
     }
   };
 

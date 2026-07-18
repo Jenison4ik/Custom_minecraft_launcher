@@ -21,12 +21,12 @@ export async function ensureJava(javaVersion: JavaVersion): Promise<string> {
       `java${javaVersion.majorVersion}`
     );
 
-    // Создаём директорию, если её нет
+    // Create directory if it does not exist
     if (!fs.existsSync(basePath)) {
       fs.mkdirSync(basePath, { recursive: true });
     }
 
-    //Проверяем Java только в папке лаунчера
+    // Only look for Java inside the launcher folder
     const javaBinPath = path.join(
       basePath,
       "bin",
@@ -36,12 +36,12 @@ export async function ensureJava(javaVersion: JavaVersion): Promise<string> {
     if (fs.existsSync(javaBinPath)) {
       const javaInfo = await resolveJava(javaBinPath);
       if (javaInfo && javaInfo.majorVersion === javaVersion.majorVersion) {
-        console.log(`✔️ Java найдена в лаунчере: ${javaInfo.version}`);
+        console.log(`✔️ Java found in launcher: ${javaInfo.version}`);
         return javaBinPath;
       }
     }
 
-    // Скачиваем и устанавливаем Java
+    // Download and install Java
     console.log(`Downloading Java${javaVersion.majorVersion}...`);
     const dispatcher = getUndiciAgent();
     const manifest = await fetchJavaRuntimeManifest({
@@ -55,32 +55,32 @@ export async function ensureJava(javaVersion: JavaVersion): Promise<string> {
 
     await task.startAndWait({
       onStart(t) {
-        console.log(`Начало установки Java: ${t.path}`);
+        console.log(`Starting Java install: ${t.path}`);
       },
       onUpdate(t, chunk) {
         sendDownloadStatus(`${t.total}`, t.progress, true);
       },
       onFailed(t, err) {
-        console.error(`Ошибка установки Java: ${t.path}`, err);
+        console.error(`Java install failed: ${t.path}`, err);
         sendDownloadStatus(`${t.total}`, t.progress, false);
       },
       onSucceed(t) {
-        console.log(`Java установлена: ${t.path}`);
+        console.log(`Java installed: ${t.path}`);
         sendDownloadStatus(`${t.total}`, t.progress, false);
       },
     });
 
-    // Проверяем путь после установки
+    // Verify path after installation
     const installedJavaInfo = await resolveJava(javaBinPath);
     if (
       installedJavaInfo &&
       installedJavaInfo.majorVersion === javaVersion.majorVersion
     ) {
-      console.log(`✔️ Java успешно установлена: ${installedJavaInfo.version}`);
+      console.log(`✔️ Java installed successfully: ${installedJavaInfo.version}`);
       return javaBinPath;
     }
 
-    throw new Error("Java установлена, но не найдена после установки.");
+    throw new Error("Java was installed but could not be found afterwards.");
   } catch (e) {
     console.error("Error in ensureJava:", e);
     sendError(`${e}`);

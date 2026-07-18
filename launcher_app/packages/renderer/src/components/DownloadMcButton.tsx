@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import "../styles/DownloadMcButton.scss";
 export default function DownloadMcButton() {
   const [loadingText, setLoadingText] = useState("Загрузка");
-  const [isLaunch, setIsLaunch] = useState(false); // начальное значение
+  const [isLaunch, setIsLaunch] = useState(false); // initial value
 
-  // при монтировании достаём статус асинхронно
+  // Fetch status asynchronously on mount
   useEffect(() => {
     (async () => {
       const status = await window.launcherAPI.getStatus();
@@ -34,12 +34,12 @@ export default function DownloadMcButton() {
     });
 
     return () => {
-      unsubscribe(); // снимаем только этот listener
+      unsubscribe(); // remove only this listener
     };
   }, []);
 
   async function handleMcDownload() {
-    // ждем загрузку и меняем состояние
+    // Wait for download and update state
     await window.launcherAPI.downloadMinecraft();
     setIsLaunch(true);
   }

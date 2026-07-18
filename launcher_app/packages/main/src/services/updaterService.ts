@@ -11,7 +11,7 @@ export function setupAutoUpdater(): void {
 
   autoUpdater.on("update-downloaded", () => {
     updateReadyToInstall = true;
-    sendDownloadStatus("Обновление скачано. Готово к установке.", 100, false);
+    sendDownloadStatus("Update downloaded. Ready to install.", 100, false);
     const windows = BrowserWindow.getAllWindows();
     if (windows.length > 0) {
       windows[0].webContents.send(CHANNELS.launchMinecraft, false);
@@ -19,10 +19,10 @@ export function setupAutoUpdater(): void {
     dialog
       .showMessageBox({
         type: "info",
-        title: "Установка обновления",
+        title: "Install update",
         message:
-          "Обновление загружено и готово к установке. Приложение будет перезапущено.",
-        buttons: ["Перезапустить и установить"],
+          "The update has been downloaded and is ready to install. The app will restart.",
+        buttons: ["Restart and install"],
       })
       .then(() => {
         autoUpdater.quitAndInstall(false, true);
@@ -37,16 +37,16 @@ export function setupAutoUpdater(): void {
     dialog
       .showMessageBox({
         type: "info",
-        title: "Доступно обновление",
-        message: `Найдена новая версия лаунчера (${info.version}). Хотите загрузить её сейчас?`,
-        buttons: ["Загрузить", "Позже"],
+        title: "Update available",
+        message: `A new launcher version (${info.version}) is available. Download it now?`,
+        buttons: ["Download", "Later"],
         defaultId: 0,
         cancelId: 1,
       })
       .then((result) => {
         if (result.response === 0) {
           autoUpdater.downloadUpdate();
-          sendDownloadStatus("Начинается загрузка обновления...", 0, true);
+          sendDownloadStatus("Starting update download...", 0, true);
           const windows = BrowserWindow.getAllWindows();
           if (windows.length > 0) {
             windows[0].webContents.send(CHANNELS.launchMinecraft, true);
@@ -57,7 +57,7 @@ export function setupAutoUpdater(): void {
 
   autoUpdater.on("download-progress", (progress) => {
     sendDownloadStatus(
-      "Загрузка обновления...",
+      "Downloading update...",
       Math.floor(progress.percent),
       true
     );
@@ -65,9 +65,9 @@ export function setupAutoUpdater(): void {
 
   autoUpdater.on("error", (error) => {
     sendError(
-      `Ошибка автообновления: ${error ? error.message : "Неизвестная ошибка"}`
+      `Auto-update error: ${error ? error.message : "Unknown error"}`
     );
-    sendDownloadStatus("Ошибка во время загрузки", 0, false);
+    sendDownloadStatus("Error during download", 0, false);
     const windows = BrowserWindow.getAllWindows();
     if (windows.length > 0) {
       windows[0].webContents.send(CHANNELS.launchMinecraft, false);

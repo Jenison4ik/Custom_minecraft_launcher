@@ -27,7 +27,7 @@ export default async function addServer() {
       "servers.dat"
     );
 
-    // Если файла нет, создаём пустой NBT-файл с корневым compound
+    // If the file is missing, create an empty NBT with a root compound
     if (!fs.existsSync(servers_path)) {
       const emptyNBT: NBT = {
         type: "compound",
@@ -45,7 +45,7 @@ export default async function addServer() {
       fs.writeFileSync(servers_path, writeUncompressed(emptyNBT));
     }
 
-    // Читаем файл
+    // Read the file
     const serversBuffer = fs.readFileSync(servers_path);
     const raw = await parseUncompressed(serversBuffer);
     const data = raw.value as unknown as {
@@ -69,7 +69,7 @@ export default async function addServer() {
       }
     }
 
-    // Сохраняем весь корневой compound
+    // Persist the full root compound
     const newNbt: Buffer = writeUncompressed({
       type: "compound",
       name: "",

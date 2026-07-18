@@ -14,7 +14,7 @@ app.whenReady().then(() => {
     createLauncherDirectory();
   } catch (e) {
     const errorMessage = e instanceof Error ? e.message : String(e);
-    sendError(`Ошибка создания директории лаунчера: ${errorMessage}\n`);
+    sendError(`Failed to create launcher directory: ${errorMessage}\n`);
   }
 });
 

@@ -15,11 +15,11 @@ export default async function downloadMinecraft() {
 
     const zipPath = path.join(BASE_DIR, "minecraft.zip");
 
-    sendDownloadStatus("Ожидание Загрузки...", 0, true);
+    sendDownloadStatus("Waiting for download...", 0, true);
 
     const response = await axios.get(launcherProperties.url + "/download", {
       responseType: "stream",
-      decompress: false, // важно, чтобы не декодировать gzip
+      decompress: false, // important: do not decode gzip
       headers: { "Accept-Encoding": "identity" },
       validateStatus: (status) => status === 200,
     });
@@ -38,33 +38,33 @@ export default async function downloadMinecraft() {
       if (total) {
         const percent = Math.round((loaded * 100) / total);
         sendDownloadStatus(
-          `Загрузка Minecraft: ${Math.floor(loaded / 1048576)} MB of ${Math.floor(total / 1048576)} MB`,
+          `Downloading Minecraft: ${Math.floor(loaded / 1048576)} MB of ${Math.floor(total / 1048576)} MB`,
           percent,
           true
         );
       }
     });
 
-    await pipeline(response.data, writer); // корректная запись потока на диск
+    await pipeline(response.data, writer); // correctly write the stream to disk
 
     sendDownloadStatus(
-      "Загрузка завершена, подготавливается каталог...",
+      "Download complete, preparing directory...",
       100,
       true
     );
-    fs.rmSync(path.join(BASE_DIR, "mods"), { recursive: true, force: true }); // удаление старого архива, если он есть
+    fs.rmSync(path.join(BASE_DIR, "mods"), { recursive: true, force: true }); // remove old mods folder if present
 
     sendDownloadStatus(
-      "Загрузка завершена, распаковываем Minecraft...",
+      "Download complete, extracting Minecraft...",
       100,
       true
     );
-    // Распаковка архива
+    // Extract archive
     await extract(zipPath, { dir: BASE_DIR });
 
-    sendDownloadStatus("Minecraft успешно распакован", 100, false);
+    sendDownloadStatus("Minecraft extracted successfully", 100, false);
   } catch (e) {
-    sendDownloadStatus("Ошибка при загрузке Minecraft: " + e, 0, false);
+    sendDownloadStatus("Error downloading Minecraft: " + e, 0, false);
     throw e;
   }
 }

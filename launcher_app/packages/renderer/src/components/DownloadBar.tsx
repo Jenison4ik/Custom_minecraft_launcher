@@ -9,7 +9,7 @@ export default function DownloadBar() {
   }>({ message: "", progress: 0, isDownloading: false });
 
   useEffect(() => {
-    //Обработчик активных загрузок
+    // Active download handler
     const handleDownloadStatus = (
       message: string,
       progress: number,
@@ -25,7 +25,7 @@ export default function DownloadBar() {
     window.launcherAPI.onDownloadStatus(handleDownloadStatus);
 
     return () => {
-      // Отменяем подписку на загрузки при размонтировании компонента
+      // Unsubscribe from downloads on unmount
       window.launcherAPI.onDownloadStatus(() => {});
     };
   }, []);

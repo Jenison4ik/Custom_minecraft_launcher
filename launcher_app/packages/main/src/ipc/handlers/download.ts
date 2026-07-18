@@ -1,18 +1,28 @@
-import { app, ipcMain } from "electron";
-import { join } from "path";
+import { ipcMain } from "electron";
 import { CHANNELS } from "@jenison/shared";
-import configService from "../../services/configService";
 import Status from "../../services/statusService";
-import { mcPath } from "../../services/paths";
-import FabricInstaller from "../../minecraft/installer/FabricInstaller";
+import {
+  sendLaunchStatus,
+  sendError,
+} from "../../services/notifyService";
+import mcInstall from "../../minecraft/installer";
+import resolveGameSpec from "../../minecraft/resolveGameSpec";
 
 export function registerDownloadHandlers(): void {
   ipcMain.handle(CHANNELS.downloadMinecraft, async () => {
-    const config = configService.getAll();
-    await FabricInstaller(
-      config as unknown as Parameters<typeof FabricInstaller>[0],
-      join(app.getPath("userData"), mcPath)
-    );
+    sendLaunchStatus(true);
+    Status.setStatus(true);
+    try {
+      const versionId = await mcInstall(resolveGameSpec());
+      return versionId;
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      sendError(`Minecraft download error: ${message}`);
+      throw e;
+    } finally {
+      sendLaunchStatus(false);
+      Status.setStatus(false);
+    }
   });
 
   ipcMain.handle(CHANNELS.isLaunched, () => {

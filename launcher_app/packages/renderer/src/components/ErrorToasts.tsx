@@ -13,7 +13,7 @@ export default function ErrorToasts() {
   >([]);
 
   useEffect(() => {
-    //Обработчик ошибок
+    // Error handler
     window.launcherAPI.onError((message, type) => {
       const newErrorId = Math.random();
       setErrors((prevErrors) => [
@@ -45,7 +45,7 @@ export default function ErrorToasts() {
       }, 5000);
     });
     return () => {
-      // Отменяем подписку на ошибки при размонтировании компонента
+      // Unsubscribe from errors on unmount
       window.launcherAPI.onError(() => {});
     };
   }, []);

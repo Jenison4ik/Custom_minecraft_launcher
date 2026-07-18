@@ -16,10 +16,10 @@ export interface CheckFilesResult {
 }
 
 /**
- * Проверяет все файлы Minecraft перед загрузкой
- * Проверяет версию, библиотеки, нативные файлы и ассеты
- * @param version - ID версии Minecraft для проверки
- * @returns CheckFilesResult с информацией о результатах проверки
+ * Checks all Minecraft files before download
+ * Verifies version, libraries, native files, and assets
+ * @param version - Minecraft version ID to check
+ * @returns CheckFilesResult with check results
  */
 export default async function checkFiles(
   version: MinecraftVersion["id"]
@@ -29,7 +29,7 @@ export default async function checkFiles(
   let resolvedVersion: ResolvedVersion | undefined;
 
   try {
-    // 1. Проверка версии
+    // 1. Version check
     console.log(`Checking version ${version}...`);
     resolvedVersion = await checkVersionFiles(mcDir, version);
     console.log("✓ Version verified");
@@ -52,7 +52,7 @@ export default async function checkFiles(
     };
   }
 
-  // 2. Проверка библиотек
+  // 2. Libraries check
   try {
     console.log("Checking libraries...");
     await checkLibraryFiles(mcDir, resolvedVersion);
@@ -65,7 +65,7 @@ export default async function checkFiles(
     missingComponents.push("libraries");
   }
 
-  // 3. Проверка нативных файлов
+  // 3. Native files check
   try {
     console.log("Checking native files...");
     await checkNativeFiles(mcDir, resolvedVersion);
@@ -78,7 +78,7 @@ export default async function checkFiles(
     missingComponents.push("natives");
   }
 
-  // 4. Проверка ассетов
+  // 4. Assets check
   try {
     console.log("Checking assets...");
     await checkAssetFiles(mcDir, resolvedVersion);

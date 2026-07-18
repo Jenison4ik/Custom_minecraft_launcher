@@ -1,11 +1,12 @@
 import {
   getVersionList,
-  MinecraftVersion,
   installVersionTask,
   installLibrariesTask,
   installAssetsTask,
+  installDependenciesTask,
 } from "@xmcl/installer";
 import { MinecraftLocation, ResolvedVersion, Version } from "@xmcl/core";
+import type { JavaVersion } from "@xmcl/core";
 import { Task } from "@xmcl/task";
 import { app } from "electron";
 import path from "path";
@@ -17,12 +18,13 @@ import {
   sendDownloadStatus,
   sendError,
 } from "../../services/notifyService";
-import { getUndiciAgent, setupUndiciAgent } from "../../utils/undiciAgent";
+import { setupUndiciAgent } from "../../utils/undiciAgent";
+import { ensureJava } from "../java";
+import type { GameSpec } from "../../types/LauncherConfig";
 
 import checkVersionFiles from "./checkVersion";
 import checkLibraryFiles from "./checkLibraries";
 import checkAssetFiles from "./checkAssets";
-
 import {
   InstallationError,
   isChecksumNotMatchError,
@@ -30,34 +32,35 @@ import {
   isErrorWithMessage,
   isFileError,
 } from "./types";
-import FabricInstaller from "./FabricInstaller";
-import { LauncherConfig } from "../../types/LauncherConfig";
-
-/* ──────────────────────────────
-   CONSTANTS
-────────────────────────────── */
+import installForgeLoader from "./ForgeInstaller";
+import installFabricLoader from "./FabricInstaller";
+import installQuiltLoader from "./QuiltInstaller";
+import installNeoForgeLoader from "./NeoForgeInstaller";
 
 const DOWNLOAD_CONCURRENCY = 1;
 
-/* ──────────────────────────────
-   HELPERS
-────────────────────────────── */
+const DEFAULT_JAVA: JavaVersion = {
+  majorVersion: 8,
+  component: "jre-legacy",
+};
 
 function deleteCorruptedFile(error: InstallationError) {
   if (isFileError(error) && error.file && fs.existsSync(error.file)) {
     try {
       fs.unlinkSync(error.file);
       console.warn("Deleted corrupted file:", error.file);
-    } catch {}
+    } catch {
+      /* ignore */
+    }
   }
 }
 
 function formatError(error: InstallationError): string {
   if (isNetworkTimeoutError(error)) {
-    return "Таймаут соединения. Проверьте интернет или прокси.";
+    return "Connection timed out. Check your internet or proxy.";
   }
   if (isChecksumNotMatchError(error)) {
-    return "Повреждённый файл. Он будет загружен заново.";
+    return "Corrupted file. It will be re-downloaded.";
   }
   return isErrorWithMessage(error) ? error.message : String(error);
 }
@@ -68,7 +71,7 @@ async function runTaskWithRetry<T>(
   retries = 7
 ): Promise<T> {
   let lastError: unknown;
-  let accumulatedProgress = 0; // суммарный прогресс за все предыдущие попытки
+  let accumulatedProgress = 0;
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     const task = createTask();
@@ -85,18 +88,17 @@ async function runTaskWithRetry<T>(
     try {
       const result = await task.startAndWait();
       if (interval) clearInterval(interval);
-      accumulatedProgress += task.total ?? 0; // обновляем после успешного завершения
+      accumulatedProgress += task.total ?? 0;
       return result;
     } catch (e) {
       if (interval) clearInterval(interval);
       lastError = e;
       console.warn(`Retry ${attempt}/${retries}`, e);
 
-      if (isChecksumNotMatchError(e as any)) {
+      if (isChecksumNotMatchError(e as InstallationError)) {
         deleteCorruptedFile(e as InstallationError);
       }
 
-      // добавляем прогресс, который Task успел пройти до ошибки
       accumulatedProgress += task.progress ?? 0;
 
       if (attempt < retries) {
@@ -108,139 +110,196 @@ async function runTaskWithRetry<T>(
   throw lastError;
 }
 
-/* ──────────────────────────────
-   MAIN INSTALL FUNCTION
-────────────────────────────── */
-
-//export default async function mcInstall(versionId: MinecraftVersion["id"]) {
-export default async function mcInstall(config: LauncherConfig) {
-  const versionId = config.id;
-  setMaxListeners(Infinity);
-  const dispatcher = setupUndiciAgent({ connections: DOWNLOAD_CONCURRENCY }); // ⬅ ОБЯЗАТЕЛЬНО ПЕРВЫМ
-
-  const mcDir: MinecraftLocation = path.join(app.getPath("userData"), mcPath);
-
+async function ensureVanillaBase(
+  mcDir: MinecraftLocation,
+  mcVersion: string
+): Promise<ResolvedVersion> {
   let resolvedVersion: ResolvedVersion | null = null;
   let needVersion = true;
   let needAssets = true;
   let needLibraries = true;
 
   try {
-    sendDownloadStatus("Проверка версии Minecraft...", 0, true);
-    resolvedVersion = await checkVersionFiles(mcDir, versionId);
+    sendDownloadStatus("Checking Minecraft version...", 0, true);
+    resolvedVersion = await checkVersionFiles(mcDir, mcVersion);
     needVersion = false;
 
     try {
-      sendDownloadStatus("Проверка ассетов...", 25, true);
+      sendDownloadStatus("Checking assets...", 15, true);
       await checkAssetFiles(mcDir, resolvedVersion);
       needAssets = false;
-    } catch {}
+    } catch {
+      /* need assets */
+    }
 
     try {
-      sendDownloadStatus("Проверка библиотек...", 50, true);
+      sendDownloadStatus("Checking libraries...", 25, true);
       await checkLibraryFiles(mcDir, resolvedVersion);
       needLibraries = false;
-    } catch {}
+    } catch {
+      /* need libraries */
+    }
 
-    if (!needAssets && !needLibraries) {
-      sendDownloadStatus("Minecraft уже установлен", 100, false);
-      return;
+    if (!needAssets && !needLibraries && resolvedVersion) {
+      return resolvedVersion;
     }
   } catch {
-    // версия отсутствует
+    /* version missing */
   }
 
   const versions = (await getVersionList()).versions.filter(
-    (v) => v.id === versionId && v.type === "release"
+    (v) => v.id === mcVersion
   );
 
   if (!versions.length) {
-    throw new Error(`Version ${versionId} not found`);
+    throw new Error(`Minecraft version ${mcVersion} not found`);
   }
 
   const versionMeta = versions[0];
 
+  if (needVersion) {
+    sendDownloadStatus("Installing Minecraft version...", 0, true);
+    resolvedVersion = await runTaskWithRetry(
+      () => installVersionTask(versionMeta, mcDir),
+      (progress, total) => {
+        const percent = Math.min(
+          30,
+          total ? Math.floor((progress / total) * 30) : progress
+        );
+        sendDownloadStatus(
+          `Downloading Minecraft version ${Math.floor(progress / 1048576)} MB of ${Math.floor(total / 1048576)} MB`,
+          percent,
+          true
+        );
+      }
+    );
+  } else {
+    resolvedVersion = await Version.parse(mcDir, mcVersion);
+  }
+
+  if (needAssets && resolvedVersion) {
+    resolvedVersion = await Version.parse(mcDir, resolvedVersion.id);
+    sendDownloadStatus("Installing assets...", 30, true);
+    await runTaskWithRetry(
+      () =>
+        installAssetsTask(resolvedVersion!, {
+          assetsDownloadConcurrency: DOWNLOAD_CONCURRENCY,
+        }),
+      (progress, total) => {
+        const percent =
+          30 +
+          Math.min(15, total ? Math.floor((progress / total) * 15) : progress);
+        sendDownloadStatus(
+          `Downloading assets ${Math.floor(progress / 1048576)} MB of ${Math.floor(total / 1048576)} MB`,
+          percent,
+          true
+        );
+      }
+    );
+  }
+
+  if (needLibraries && resolvedVersion) {
+    sendDownloadStatus("Installing libraries...", 45, true);
+    await runTaskWithRetry(
+      () =>
+        installLibrariesTask(resolvedVersion!, {
+          librariesDownloadConcurrency: DOWNLOAD_CONCURRENCY,
+        }),
+      (progress, total) => {
+        const percent =
+          45 +
+          Math.min(10, total ? Math.floor((progress / total) * 10) : progress);
+        sendDownloadStatus(
+          `Downloading libraries ${Math.floor(progress / 1048576)} MB of ${Math.floor(total / 1048576)} MB`,
+          percent,
+          true
+        );
+      }
+    );
+  }
+
+  return Version.parse(mcDir, mcVersion);
+}
+
+async function installLoader(
+  spec: GameSpec,
+  mcDir: string,
+  javaPath: string
+): Promise<string> {
+  switch (spec.loader) {
+    case "vanilla":
+      return spec.mcVersion;
+    case "forge":
+      return installForgeLoader({
+        mcVersion: spec.mcVersion,
+        mcDir,
+        loaderVersion: spec.loaderVersion,
+        javaPath,
+      });
+    case "fabric":
+      return installFabricLoader({
+        mcVersion: spec.mcVersion,
+        mcDir,
+        loaderVersion: spec.loaderVersion,
+      });
+    case "quilt":
+      return installQuiltLoader({
+        mcVersion: spec.mcVersion,
+        mcDir,
+        loaderVersion: spec.loaderVersion,
+      });
+    case "neoforge":
+      return installNeoForgeLoader({
+        mcVersion: spec.mcVersion,
+        mcDir,
+        loaderVersion: spec.loaderVersion,
+        javaPath,
+      });
+    default:
+      throw new Error(`Unknown loader: ${spec.loader as string}`);
+  }
+}
+
+/**
+ * Installs Minecraft (+ loader) according to GameSpec.
+ * @returns Final version id to launch (e.g. 1.16.4-forge-35.x.x)
+ */
+export default async function mcInstall(spec: GameSpec): Promise<string> {
+  setMaxListeners(Infinity);
+  setupUndiciAgent({ connections: DOWNLOAD_CONCURRENCY });
+
+  const mcDir: MinecraftLocation = path.join(app.getPath("userData"), mcPath);
+
   try {
-    /* ───── VERSION FILES ───── */
+    const vanilla = await ensureVanillaBase(mcDir, spec.mcVersion);
 
-    if (needVersion) {
-      sendDownloadStatus("Установка версии Minecraft...", 0, true);
+    sendDownloadStatus("Checking Java...", 50, true);
+    const javaPath = await ensureJava(vanilla.javaVersion ?? DEFAULT_JAVA);
 
-      resolvedVersion = await runTaskWithRetry(
-        () => installVersionTask(versionMeta, mcDir),
-        (progress, total) => {
-          const percent = Math.min(
-            33,
-            total ? Math.floor((progress / total) * 33) : progress
-          );
-          sendDownloadStatus(
-            `Загрузка версии Minecraft ${Math.floor(progress / 1048576)} Мб из ${Math.floor(total / 1048576)} Мб`,
-            percent,
-            true
-          );
-        }
-      );
-    } else {
-      resolvedVersion = await Version.parse(mcDir, versionId);
-    }
-    if (config.loader.type === "fabric") {
-      resolvedVersion = await FabricInstaller(config, mcDir);
-    }
-    /* ───── ASSETS ───── */
+    const versionId = await installLoader(spec, mcDir, javaPath);
 
-    if (needAssets && resolvedVersion) {
-      resolvedVersion = await Version.parse(mcDir, resolvedVersion.id);
+    sendDownloadStatus("Installing version dependencies...", 80, true);
+    const resolved = await Version.parse(mcDir, versionId);
+    await runTaskWithRetry(
+      () =>
+        installDependenciesTask(resolved, {
+          assetsDownloadConcurrency: DOWNLOAD_CONCURRENCY,
+          librariesDownloadConcurrency: DOWNLOAD_CONCURRENCY,
+        }),
+      (progress, total) => {
+        const percent =
+          80 +
+          Math.min(19, total ? Math.floor((progress / total) * 19) : progress);
+        sendDownloadStatus(
+          `Dependencies ${Math.floor(progress / 1048576)} MB of ${Math.floor(total / 1048576)} MB`,
+          percent,
+          true
+        );
+      }
+    );
 
-      sendDownloadStatus("Установка ассетов...", 33, true);
-
-      await runTaskWithRetry(
-        () =>
-          installAssetsTask(resolvedVersion!, {
-            assetsDownloadConcurrency: DOWNLOAD_CONCURRENCY,
-          }),
-        (progress, total) => {
-          const percent =
-            33 +
-            Math.min(
-              33,
-              total ? Math.floor((progress / total) * 33) : progress
-            );
-          sendDownloadStatus(
-            `Загрузка ассетов ${Math.floor(progress / 1048576)} Мб из ${Math.floor(total / 1048576)} Мб`,
-            percent,
-            true
-          );
-        }
-      );
-    }
-
-    /* ───── LIBRARIES ───── */
-
-    if (needLibraries && resolvedVersion) {
-      sendDownloadStatus("Установка библиотек...", 66, true);
-
-      await runTaskWithRetry(
-        () =>
-          installLibrariesTask(resolvedVersion!, {
-            librariesDownloadConcurrency: DOWNLOAD_CONCURRENCY,
-          }),
-        (progress, total) => {
-          const percent =
-            66 +
-            Math.min(
-              34,
-              total ? Math.floor((progress / total) * 34) : progress
-            );
-          sendDownloadStatus(
-            `Загрузка библиотек ${Math.floor(progress / 1048576)} Мб из ${Math.floor(total / 1048576)} Мб`,
-            percent,
-            true
-          );
-        }
-      );
-    }
-
-    sendDownloadStatus("Установка Minecraft завершена", 100, false);
+    sendDownloadStatus("Minecraft installation complete", 100, false);
+    return versionId;
   } catch (e) {
     const error = e as InstallationError;
     console.error("Installation failed:", error);
@@ -249,8 +308,8 @@ export default async function mcInstall(config: LauncherConfig) {
       deleteCorruptedFile(error);
     }
 
-    sendError(`Ошибка установки: ${formatError(error)}`);
-    sendDownloadStatus("Ошибка установки", 0, false);
+    sendError(`Installation error: ${formatError(error)}`);
+    sendDownloadStatus("Installation error", 0, false);
     throw error;
   }
 }

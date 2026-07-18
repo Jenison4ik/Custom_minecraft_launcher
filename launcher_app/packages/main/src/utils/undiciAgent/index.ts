@@ -39,7 +39,7 @@ function createAgent(options: UndiciAgentOptions): Agent {
     pipelining: options.pipelining ?? DEFAULT_PIPELINING,
     headersTimeout: options.headersTimeout ?? DEFAULT_HEADERS_TIMEOUT,
     bodyTimeout: options.bodyTimeout ?? DEFAULT_BODY_TIMEOUT,
-    keepAliveTimeout: options.headersTimeout ?? DEFAULT_CONNECT_TIMEOUT, // таймаут неактивного сокета
+    keepAliveTimeout: options.headersTimeout ?? DEFAULT_CONNECT_TIMEOUT, // idle socket timeout
     keepAliveMaxTimeout: 600_000,
   });
 }
@@ -49,8 +49,8 @@ function createAgent(options: UndiciAgentOptions): Agent {
 ────────────────────────────── */
 
 /**
- * Возвращает singleton Agent
- * Создаётся только один раз за всё время жизни процесса
+ * Returns the singleton Agent.
+ * Created only once for the lifetime of the process.
  */
 export function getUndiciAgent(options: UndiciAgentOptions = {}): Agent {
   if (!globalAgent) {
@@ -61,8 +61,8 @@ export function getUndiciAgent(options: UndiciAgentOptions = {}): Agent {
 }
 
 /**
- * Устанавливает глобальный dispatcher (один раз)
- * Повторные вызовы безопасны
+ * Sets the global dispatcher (once).
+ * Subsequent calls are safe.
  */
 export function setupUndiciAgent(options: UndiciAgentOptions = {}): Agent {
   const agent = getUndiciAgent(options);
@@ -76,7 +76,7 @@ export function setupUndiciAgent(options: UndiciAgentOptions = {}): Agent {
 }
 
 /**
- * Быстрая настройка с дефолтами
+ * Quick setup with defaults.
  */
 export function setupDefaultUndiciAgent(): Agent {
   return setupUndiciAgent();

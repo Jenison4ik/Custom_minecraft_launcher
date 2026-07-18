@@ -32,12 +32,12 @@ export default async function generateManifest(file: string) {
       const filestat = await fs.stat(filepath);
       const shortpath = filepath.slice(baseDir.length);
 
-      // если путь совпадает с исключениями → пропускаем
+      // skip paths that match exclusions
       if (skip.some((exclusion) => shortpath.includes(exclusion))) {
         continue;
       }
 
-      // если путь не входит в список обновляемых файлов → пропускаем
+      // skip paths that are not in the update list
       if (!updates.some((include) => shortpath.includes(include))) {
         continue;
       }
@@ -69,7 +69,7 @@ export default async function generateManifest(file: string) {
 
     await fs.writeFile(
       path.join(baseDir, "manifest.json"),
-      JSON.stringify(manifest, null, 2) // форматирую для читаемости
+      JSON.stringify(manifest, null, 2) // pretty-print for readability
     );
 
     return manifest;

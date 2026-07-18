@@ -2,21 +2,21 @@ import { MinecraftLocation, ResolvedVersion, diagnose } from "@xmcl/core";
 import { isErrorWithMessage } from "./types";
 
 /**
- * Проверяет наличие и корректность всех библиотек для версии Minecraft
- * @param mcDir - Директория Minecraft
- * @param resolvedVersion - Разрешенная версия Minecraft
- * @returns Promise<void> если все библиотеки присутствуют и корректны
- * @throws Error если библиотеки отсутствуют или повреждены
+ * Checks that all libraries for a Minecraft version exist and are valid
+ * @param mcDir - Minecraft directory
+ * @param resolvedVersion - Resolved Minecraft version
+ * @returns Promise<void> if all libraries are present and valid
+ * @throws Error if libraries are missing or corrupted
  */
 export default async function checkLibraryFiles(
   mcDir: MinecraftLocation,
   resolvedVersion: ResolvedVersion
 ): Promise<void> {
   try {
-    // Проверяем библиотеки через diagnose
+    // Diagnose libraries
     const report = await diagnose(resolvedVersion.id, mcDir);
 
-    // Фильтруем проблемы с библиотеками
+    // Filter library issues
     const libraryIssues = report.issues.filter(
       (issue) => issue.role === "library"
     );
@@ -25,10 +25,10 @@ export default async function checkLibraryFiles(
       const issuesList = libraryIssues
         .map((i) => {
           if ("file" in i && i.file) return i.file;
-          return "библиотека отсутствует или повреждена";
+          return "library missing or corrupted";
         })
         .join(", ");
-      throw new Error(`Обнаружены проблемы с библиотеками: ${issuesList}`);
+      throw new Error(`Library issues detected: ${issuesList}`);
     }
 
     console.log(
@@ -39,7 +39,7 @@ export default async function checkLibraryFiles(
       ? error.message
       : String(error);
     throw new Error(
-      `Ошибка проверки библиотек для версии ${resolvedVersion.id}: ${errorMessage}`
+      `Libraries check failed for version ${resolvedVersion.id}: ${errorMessage}`
     );
   }
 }

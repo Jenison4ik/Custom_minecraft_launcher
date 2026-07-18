@@ -1,9 +1,6 @@
 {
   "nickname": "Steve",
   "ram": 2048,
-  "disableDownload": true,
-  "id": "",
-  "loader": {
-    "type": "vanilla"
-  }
+  "disableDownload": false,
+  "loaderVersion": ""
 }

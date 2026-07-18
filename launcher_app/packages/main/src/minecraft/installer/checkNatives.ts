@@ -2,22 +2,22 @@ import { MinecraftLocation, ResolvedVersion, diagnose } from "@xmcl/core";
 import { isErrorWithMessage } from "./types";
 
 /**
- * Проверяет наличие и корректность нативных файлов для версии Minecraft
- * @param mcDir - Директория Minecraft
- * @param resolvedVersion - Разрешенная версия Minecraft
- * @returns Promise<void> если все нативные файлы присутствуют и корректны
- * @throws Error если нативные файлы отсутствуют или повреждены
+ * Checks native files for a Minecraft version
+ * @param mcDir - Minecraft directory
+ * @param resolvedVersion - Resolved Minecraft version
+ * @returns Promise<void> if all native files are present and valid
+ * @throws Error if native files are missing or corrupted
  */
 export default async function checkNativeFiles(
   mcDir: MinecraftLocation,
   resolvedVersion: ResolvedVersion
 ): Promise<void> {
   try {
-    // Проверяем нативные файлы через diagnose
+    // Diagnose native files
     const report = await diagnose(resolvedVersion.id, mcDir);
 
-    // Фильтруем проблемы с нативными файлами (обычно это часть библиотек)
-    // Нативные файлы могут быть частью библиотек, поэтому проверяем их через library issues
+    // Filter native-related issues (usually part of libraries)
+    // Native files may be part of libraries, so check via library issues
     const nativeIssues = report.issues.filter(
       (issue) =>
         issue.role === "library" &&
@@ -28,10 +28,10 @@ export default async function checkNativeFiles(
       const issuesList = nativeIssues
         .map((i) => {
           if ("file" in i && i.file) return i.file;
-          return "нативный файл отсутствует или поврежден";
+          return "native file missing or corrupted";
         })
         .join(", ");
-      throw new Error(`Обнаружены проблемы с нативными файлами: ${issuesList}`);
+      throw new Error(`Native file issues detected: ${issuesList}`);
     }
 
     console.log(
@@ -42,7 +42,7 @@ export default async function checkNativeFiles(
       ? error.message
       : String(error);
     throw new Error(
-      `Ошибка проверки нативных файлов для версии ${resolvedVersion.id}: ${errorMessage}`
+      `Native files check failed for version ${resolvedVersion.id}: ${errorMessage}`
     );
   }
 }

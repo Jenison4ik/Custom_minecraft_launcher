@@ -1,20 +1,35 @@
+import type { McCore } from "../config/launcherProperties";
+
 /**
- * Настройки лаунчера
+ * User preferences from config.json (not game version).
  */
-export interface LauncherConfig {
-  /** Никнейм игрока */
+export interface UserSettings {
   nickname: string;
-
-  /** Оперативная память в МБ */
   ram: number;
-
-  /** Отключить скачивание файлов */
   disableDownload: boolean;
+  /** Optional pin for mod loader version (overrides launcherProperties when set) */
+  loaderVersion?: string;
+}
 
-  /** Версия Minecraft (например: 1.18.2) */
+/**
+ * Full game install/launch spec: properties + user settings.
+ */
+export interface GameSpec extends UserSettings {
+  /** Vanilla Minecraft version id (e.g. 1.16.4) */
+  mcVersion: string;
+  loader: McCore;
+  /** Optional pinned loader version */
+  loaderVersion?: string;
+}
+
+/** @deprecated Prefer GameSpec; kept for transitional call sites */
+export interface LauncherConfig {
+  nickname: string;
+  ram: number;
+  disableDownload: boolean;
   id: string;
   loader: {
-    type: "fabric" | "forge" | "vanilla";
+    type: McCore;
     version?: string;
   };
 }

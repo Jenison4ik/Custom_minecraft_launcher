@@ -56,7 +56,8 @@ Main (Node)       ←  ipcMain.handle / webContents.send
 | `minecraft/installer/` | Установка version/libs/assets + Fabric |
 | `minecraft/launch/` | Запуск через `@xmcl/core` |
 | `minecraft/java/` | `ensureJava` |
-| `config/launcherProperties.ts` | URL API, версия MC, серверы |
+| `config/launcherProperties.ts` | URL API, **версия MC + загрузчик** (источник правды для игры) |
+| `minecraft/resolveGameSpec.ts` | properties + nickname/ram/disableDownload → GameSpec |
 | `utils/` | addServer, manifests, undiciAgent, legacy helpers |
 | `types/LauncherConfig.ts` | Тип игрового конфига |
 
@@ -105,6 +106,14 @@ Main (Node)       ←  ipcMain.handle / webContents.send
 Electron 31, React 18, Vite 5, TypeScript, Sass, `@xmcl/core` / `@xmcl/installer`, `electron-updater`, undici.
 
 Сборка **не** на electron-vite (пакет в deps есть, но не используется): `tsc` + Vite + `electron-builder`.
+
+## Установка / запуск Minecraft
+
+Источник правды: `packages/main/src/config/launcherProperties.ts` (`mcVersion`, `mcCore`, опционально `loaderVersion`).
+
+- `mcCore`: `vanilla` | `fabric` | `forge` | `quilt` | `neoforge`
+- Pipeline: `resolveGameSpec` → vanilla base → loader installer → `installDependencies` → `launch(versionId)`
+- User `config.json` хранит только nickname / ram / `disableDownload`
 
 ## Правила для агента
 

@@ -17,7 +17,7 @@ export default async function deepEqual(
   for (const key of Object.keys(serverFiles)) {
     if (!(key in localFiles)) {
       console.log(`❌ The local manifest does not contain the file: ${key}`);
-      return false; // не хватает файла из серверного манифеста
+      return false; // missing a file from the server manifest
     }
 
     const fLocal = localFiles[key];
@@ -25,10 +25,10 @@ export default async function deepEqual(
 
     if (fLocal.sha1 !== fServer.sha1 || fLocal.size !== fServer.size) {
       console.log(`❌ The file is different: ${key}`);
-      return false; // файл отличается
+      return false; // file differs
     }
   }
 
-  // Если дошли сюда, значит все файлы сервера есть и совпадают → true
+  // All server files are present and match → true
   return true;
 }

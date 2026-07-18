@@ -1,7 +1,7 @@
 import {
-  getLoaderArtifactListFor,
-  installFabric,
-  type FabricLoaderArtifact,
+  getQuiltLoaderVersionsByMinecraft,
+  installQuiltVersion,
+  type QuiltLoaderArtifact,
 } from "@xmcl/installer";
 import { sendDownloadStatus } from "../../services/notifyService";
 import {
@@ -10,12 +10,12 @@ import {
   tryParseVersion,
 } from "./versionLookup";
 
-function pickFabricArtifact(
-  artifacts: FabricLoaderArtifact[],
+function pickQuiltArtifact(
+  artifacts: QuiltLoaderArtifact[],
   loaderVersion?: string
-): FabricLoaderArtifact {
+): QuiltLoaderArtifact {
   if (!artifacts.length) {
-    throw new Error("Fabric version list is empty");
+    throw new Error("Quilt version list is empty");
   }
 
   if (loaderVersion) {
@@ -25,7 +25,7 @@ function pickFabricArtifact(
         a.loader.version.includes(loaderVersion)
     );
     if (!found) {
-      throw new Error(`Fabric loader ${loaderVersion} not found`);
+      throw new Error(`Quilt loader ${loaderVersion} not found`);
     }
     return found;
   }
@@ -33,49 +33,45 @@ function pickFabricArtifact(
   return artifacts.find((a) => a.loader.stable) ?? artifacts[0];
 }
 
-export default async function installFabricLoader(options: {
+export default async function installQuiltLoader(options: {
   mcVersion: string;
   mcDir: string;
   loaderVersion?: string;
 }): Promise<string> {
   const { mcVersion, mcDir, loaderVersion } = options;
 
-  sendDownloadStatus("Fetching Fabric version list...", 55, true);
-  const artifacts = await getLoaderArtifactListFor(mcVersion);
-  const artifact = pickFabricArtifact(artifacts, loaderVersion);
+  sendDownloadStatus("Fetching Quilt version list...", 55, true);
+  const artifacts = await getQuiltLoaderVersionsByMinecraft({
+    minecraftVersion: mcVersion,
+  });
+  const artifact = pickQuiltArtifact(artifacts, loaderVersion);
   const loaderVer = artifact.loader.version;
 
   const installed = listInstalledVersionIds(mcDir);
   const existingId = findVersionId(installed, [
     (id) =>
-      id.toLowerCase().includes("fabric") &&
+      id.toLowerCase().includes("quilt") &&
       id.includes(mcVersion) &&
       id.includes(loaderVer),
-    (id) => id === `${mcVersion}-fabric${loaderVer}`,
-    (id) => id === `fabric-loader-${loaderVer}-${mcVersion}`,
   ]);
 
   if (existingId) {
     const parsed = await tryParseVersion(mcDir, existingId);
     if (parsed) {
-      sendDownloadStatus(`Fabric already installed: ${existingId}`, 70, true);
+      sendDownloadStatus(`Quilt already installed: ${existingId}`, 70, true);
       return existingId;
     }
   }
 
-  sendDownloadStatus(
-    `Installing Fabric Loader ${loaderVer}...`,
-    60,
-    true
-  );
+  sendDownloadStatus(`Installing Quilt Loader ${loaderVer}...`, 60, true);
 
-  const versionId = await installFabric({
+  const versionId = await installQuiltVersion({
     minecraftVersion: mcVersion,
     version: loaderVer,
     minecraft: mcDir,
     side: "client",
   });
 
-  sendDownloadStatus(`Fabric installed: ${versionId}`, 75, true);
+  sendDownloadStatus(`Quilt installed: ${versionId}`, 75, true);
   return versionId;
 }

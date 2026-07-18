@@ -15,7 +15,7 @@ export default function LaunchButton({ onClick }: LaunchButtonProps) {
     });
 
     return () => {
-      unsubscribe(); // снимаем только этот listener
+      unsubscribe(); // remove only this listener
     };
   }, []);
 
