@@ -104,36 +104,38 @@ docker compose up -d --build
 
 После этого приложение полностью готово к работе
 
-## Эндпоинты приложения
+## API сервера
 
-## Minecraft API
+Полная документация: **[server_app/API.md](./server_app/API.md)** — как устроен API, что загружать, как обновлять сборку и лаунчер, примеры `curl`.
 
-### Сборка Minecraft
+Кратко:
 
-- **POST /minecraft/api/upload**  
-  Загрузка сборки (`file`, multipart).  
-  Генерирует `manifest.json` и `minecraft_files.zip`.
+| Метод | Путь | Назначение |
+|-------|------|------------|
+| `POST` | `/minecraft/api/upload` | Загрузить ZIP сборки Minecraft (`x-secret-key` + поле `file`) → `manifest.json` + `minecraft_files.zip` |
+| `GET` | `/minecraft/api/download` | Скачать архив сборки |
+| `GET` | `/minecraft/api/manifest` | Манифест файлов (SHA-1 + size) |
+| `GET` | `/minecraft/api/latest` | Версия лаунчера из `version.json` |
+| `GET` | `/minecraft/api/latest.yml` | Метаданные для `electron-updater` |
+| `GET` | `/minecraft/api/downloadGame.exe` | Скачать установщик лаунчера |
+| `POST` | `/minecraft/api/uploadGame` | Загрузить обновление лаунчера (`x-secret-key`, `version`, `file`, `yml`) |
 
-- **GET /minecraft/api/download**  
-  Скачать архив сборки.
+Загрузки защищены заголовком `x-secret-key` (= `SECRET_KEY` из `.env`).
 
-- **GET /minecraft/api/manifest**  
-  Получить манифест сборки (генерируется при отсутствии).
+### Обновить сборку Minecraft
 
----
+1. Упакуйте содержимое `.minecraft` (mods, versions, libraries, assets, …) в `.zip`
+2. Отправьте на `POST /minecraft/api/upload` с `x-secret-key`
+3. Клиенты подтянут изменения при следующем запуске (сравнение манифеста)
 
-### Версии и обновления
+### Обновить лаунчер
 
-- **GET /minecraft/api/latest**  
-  Текущая версия клиента.
-  ```json
-  { "version": "x.x.x", "url": "https://jenison.ru/download" }
+1. Соберите лаунчер (`npm run pack` в `launcher_app`)
+2. Отправьте ZIP установщика + содержимое `latest.yml` на `POST /minecraft/api/uploadGame`
 
 **Приятной игры! 🎮**
 
 ## 📄 Лицензия
 
 MIT License
-
-
 
