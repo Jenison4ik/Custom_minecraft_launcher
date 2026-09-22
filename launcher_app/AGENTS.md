@@ -7,9 +7,7 @@ Electron-лаунчер Minecraft (Jenison). Работает в трёх про
 ```bash
 cd launcher_app
 npm install
-npm run dev          # tsc watch (shared/main/preload) + vite renderer
-# в другом терминале:
-npm start            # electron с VITE_DEV_SERVER_URL=http://localhost:5173
+npm run dev          # tsc watch + vite + electron (ждёт порт 5173 и dist)
 
 npm run build        # shared → main → preload → renderer → dist/
 npm run pack         # build + electron-builder → out/
@@ -68,7 +66,7 @@ Main (Node)       ←  ipcMain.handle / webContents.send
 - `hooks/`, `providers/`, `styles/`
 - `types/launcher-api.d.ts` — `Window.launcherAPI` из `@jenison/shared`
 
-Стили рядом по смыслу: SCSS в `styles/`, импорт из компонента как `../styles/Foo.scss`.
+Стили: `styles/base.css` (вид компонентов) и правимый `styles/theme.css` (токены и положение). Оба импорта в `main.tsx`.
 
 ## IPC-каналы
 
@@ -103,7 +101,7 @@ Main (Node)       ←  ipcMain.handle / webContents.send
 
 ## Стек
 
-Electron 31, React 18, Vite 5, TypeScript, Sass, `@xmcl/core` / `@xmcl/installer`, `electron-updater`, undici.
+Electron 31, React 18, Vite 5, TypeScript, CSS (`base.css` + `theme.css`), `@xmcl/core` / `@xmcl/installer`, `electron-updater`, undici.
 
 Сборка **не** на electron-vite (пакет в deps есть, но не используется): `tsc` + Vite + `electron-builder`.
 

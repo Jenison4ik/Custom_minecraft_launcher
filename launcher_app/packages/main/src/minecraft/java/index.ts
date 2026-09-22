@@ -6,6 +6,7 @@ import {
   sendDownloadStatus,
 } from "../../services/notifyService";
 import { getUndiciAgent } from "../../utils/undiciAgent";
+import { readLaunchPrefs } from "../launchPrefs";
 import {
   fetchJavaRuntimeManifest,
   installJavaRuntimeTask,
@@ -86,4 +87,29 @@ export async function ensureJava(javaVersion: JavaVersion): Promise<string> {
     sendError(`${e}`);
     throw e;
   }
+}
+
+/**
+ * Uses a user-selected Java binary when config.javaPath is set and the
+ * major version matches. Otherwise downloads the runtime the game asks for.
+ */
+export async function resolveLaunchJava(
+  required: JavaVersion
+): Promise<string> {
+  const { javaPath } = readLaunchPrefs();
+  if (!javaPath) return ensureJava(required);
+
+  if (!fs.existsSync(javaPath)) {
+    throw new Error(`Выбранная Java не найдена: ${javaPath}`);
+  }
+
+  const info = await resolveJava(javaPath);
+  if (!info || info.majorVersion !== required.majorVersion) {
+    const found = info ? String(info.majorVersion) : "неизвестна";
+    throw new Error(
+      `Нужна Java ${required.majorVersion}, выбрана Java ${found}`
+    );
+  }
+
+  return javaPath;
 }

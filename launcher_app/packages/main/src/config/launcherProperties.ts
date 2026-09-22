@@ -13,7 +13,7 @@ const launcherProperties = {
    * Examples: "35.1.37" (Forge), "0.16.14" (Fabric).
    * Empty string — use recommended/latest for mcVersion.
    */
-  loaderVersion: "0.16.14",
+  loaderVersion: "",
   servers: [
     {
       ip: "jenison.ru",

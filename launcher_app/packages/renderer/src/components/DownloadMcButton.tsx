@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import "../styles/DownloadMcButton.scss";
 export default function DownloadMcButton() {
   const [loadingText, setLoadingText] = useState("Загрузка");
   const [isLaunch, setIsLaunch] = useState(false); // initial value
 
   // Fetch status asynchronously on mount
   useEffect(() => {
+    if (!window.launcherAPI) return;
     (async () => {
       const status = await window.launcherAPI.getStatus();
       setIsLaunch(status);
@@ -29,6 +29,7 @@ export default function DownloadMcButton() {
   }, [isLaunch]);
 
   useEffect(() => {
+    if (!window.launcherAPI) return;
     const unsubscribe = window.launcherAPI.onMinecraft((status: boolean) => {
       setIsLaunch(status);
     });
@@ -48,7 +49,7 @@ export default function DownloadMcButton() {
     <button
       onClick={handleMcDownload}
       disabled={isLaunch}
-      className="restorebtn"
+      className="launcher-restore"
     >
       {isLaunch ? loadingText : "Восстановить игровые файлы"}
     </button>

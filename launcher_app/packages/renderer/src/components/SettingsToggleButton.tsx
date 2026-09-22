@@ -14,7 +14,10 @@ export default function SettingsToggleButton() {
   };
 
   return (
-    <button className="button" onClick={handleClick}>
+    <button
+      className="launcher-icon-button launcher-icon-button--settings"
+      onClick={handleClick}
+    >
       <img
         src={location.pathname === "/" ? "./settings.svg" : "./home.svg"}
         alt=""

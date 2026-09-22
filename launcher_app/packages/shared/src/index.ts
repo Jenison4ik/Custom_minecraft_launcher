@@ -4,4 +4,6 @@ export type {
   ConfigEntry,
   ErrorToastType,
   LauncherAPI,
+  LauncherInfo,
+  LauncherServerInfo,
 } from "./ipc-api";

@@ -19,7 +19,7 @@ import {
   sendError,
 } from "../../services/notifyService";
 import { setupUndiciAgent } from "../../utils/undiciAgent";
-import { ensureJava } from "../java";
+import { resolveLaunchJava } from "../java";
 import type { GameSpec } from "../../types/LauncherConfig";
 
 import checkVersionFiles from "./checkVersion";
@@ -274,7 +274,9 @@ export default async function mcInstall(spec: GameSpec): Promise<string> {
     const vanilla = await ensureVanillaBase(mcDir, spec.mcVersion);
 
     sendDownloadStatus("Checking Java...", 50, true);
-    const javaPath = await ensureJava(vanilla.javaVersion ?? DEFAULT_JAVA);
+    const javaPath = await resolveLaunchJava(
+      vanilla.javaVersion ?? DEFAULT_JAVA
+    );
 
     const versionId = await installLoader(spec, mcDir, javaPath);
 

@@ -18,8 +18,9 @@ export default function InputRange({
 
   const minVal = maxVal < 2048 ? Math.floor(maxVal * 0.5) : 2048;
   return (
-    <div className="ram-select">
+    <div className="launcher-ram">
       <input
+        className="launcher-ram-slider"
         ref={inputRef}
         type="range"
         min={minVal}
@@ -39,9 +40,9 @@ export default function InputRange({
           onCommit?.(isNaN(value) ? minVal : value);
         }}
       />
-      <div className="ram-box-wrap">
+      <div className="launcher-ram-fields">
         <input
-          className="ram-box"
+          className="launcher-ram-value"
           type="text"
           min={minVal}
           max={maxVal}
@@ -71,7 +72,7 @@ export default function InputRange({
             onCommit?.(value);
           }}
         />
-        <p>MB</p>
+        <p className="launcher-ram-unit">MB</p>
       </div>
     </div>
   );

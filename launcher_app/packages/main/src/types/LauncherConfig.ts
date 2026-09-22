@@ -9,6 +9,14 @@ export interface UserSettings {
   disableDownload: boolean;
   /** Optional pin for mod loader version (overrides launcherProperties when set) */
   loaderVersion?: string;
+  windowWidth?: number;
+  windowHeight?: number;
+  fullscreen?: boolean;
+  closeOnLaunch?: boolean;
+  /** Empty string uses the Java runtime installed by the launcher */
+  javaPath?: string;
+  /** One JVM argument per line. -Xmx and -Xms are ignored */
+  jvmArgs?: string;
 }
 
 /**

@@ -2,9 +2,34 @@ import { app, BrowserWindow } from "electron";
 import { join } from "path";
 
 let win: BrowserWindow | null = null;
+let hiddenForGame = false;
 
 export function getMainWindow(): BrowserWindow | null {
   return win;
+}
+
+export function hideMainWindow(): void {
+  hiddenForGame = true;
+  for (const window of BrowserWindow.getAllWindows()) {
+    window.hide();
+  }
+}
+
+export function showMainWindow(): void {
+  if (!hiddenForGame) return;
+  hiddenForGame = false;
+
+  const windows = BrowserWindow.getAllWindows();
+  if (windows.length === 0) {
+    createWindow();
+    return;
+  }
+
+  for (const window of windows) {
+    if (window.isMinimized()) window.restore();
+    window.show();
+  }
+  windows[0].focus();
 }
 
 export function createWindow(): BrowserWindow {

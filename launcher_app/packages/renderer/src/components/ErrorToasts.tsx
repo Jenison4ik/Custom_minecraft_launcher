@@ -1,5 +1,4 @@
 import ErrorBox from "./ErrorBox";
-import "../styles/ErrorToasts.scss";
 import { useState, useEffect } from "react";
 
 export default function ErrorToasts() {
@@ -13,7 +12,7 @@ export default function ErrorToasts() {
   >([]);
 
   useEffect(() => {
-    // Error handler
+    if (!window.launcherAPI) return;
     window.launcherAPI.onError((message, type) => {
       const newErrorId = Math.random();
       setErrors((prevErrors) => [
@@ -51,7 +50,7 @@ export default function ErrorToasts() {
   }, []);
 
   return (
-    <div className={"error-toasts "}>
+    <div className="launcher-toasts">
       {errors.map((error) => (
         <ErrorBox
           type={error.type === "error" ? "error" : "notification"}

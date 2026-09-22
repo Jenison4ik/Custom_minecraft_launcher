@@ -1,15 +1,15 @@
 {
   "name": "jenison-launcher",
-  "version": "1.6.1",
+  "version": "1.6.6",
   "description": "Jenison Launcher",
   "main": "dist/main/index.js",
   "scripts": {
-    "dev": "concurrently \"npm:dev:shared\" \"npm:dev:main\" \"npm:dev:preload\" \"npm:dev:renderer\"",
+    "dev": "concurrently -k -n shared,main,preload,renderer,electron -c cyan,green,yellow,magenta,blue \"npm:dev:shared\" \"npm:dev:main\" \"npm:dev:preload\" \"npm:dev:renderer\" \"npm:start\"",
     "dev:shared": "tsc -p packages/shared -w",
     "dev:main": "tsc -p packages/main -w",
     "dev:preload": "esbuild packages/preload/src/index.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload/index.js --watch",
     "dev:renderer": "vite -c packages/renderer/vite.config.ts",
-    "start": "wait-on tcp:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .",
+    "start": "wait-on http://127.0.0.1:5173 file:dist/main/index.js file:dist/preload/index.js && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .",
     "build": "npm run build:shared && npm run build:main && npm run build:preload && npm run build:renderer",
     "build:shared": "tsc -p packages/shared",
     "build:main": "tsc -p packages/main && cpx config.json dist/main/",

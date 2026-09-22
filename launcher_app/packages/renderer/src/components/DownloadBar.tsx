@@ -1,4 +1,3 @@
-import "../styles/DownloadBar.scss";
 import { useState, useEffect } from "react";
 
 export default function DownloadBar() {
@@ -22,6 +21,7 @@ export default function DownloadBar() {
       });
     };
 
+    if (!window.launcherAPI) return;
     window.launcherAPI.onDownloadStatus(handleDownloadStatus);
 
     return () => {
@@ -30,14 +30,16 @@ export default function DownloadBar() {
     };
   }, []);
   return (
-    <div className={`download-bar ${download.isDownloading ? "show" : ""}`}>
+    <div
+      className={`launcher-download${download.isDownloading ? " launcher-download--visible" : ""}`}
+    >
       <div
-        className="download-progress-bar"
+        className="launcher-download-progress"
         style={{ width: `${download.progress}%` }}
       >
-        <div className="download-animation"></div>
+        <div className="launcher-download-animation"></div>
       </div>
-      <p className="download-message">
+      <p className="launcher-download-message">
         {download.message} — {download.progress}%
       </p>
     </div>

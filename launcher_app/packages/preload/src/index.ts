@@ -44,6 +44,11 @@ const launcherAPI: LauncherAPI = {
   getStatus: async () => {
     return await ipcRenderer.invoke(CHANNELS.isLaunched);
   },
+  getLauncherInfo: () => ipcRenderer.invoke(CHANNELS.getLauncherInfo),
+  pickJavaPath: () => ipcRenderer.invoke(CHANNELS.pickJavaPath),
+  checkForUpdates: () => ipcRenderer.invoke(CHANNELS.checkForUpdates),
+  openGameDir: () => ipcRenderer.invoke(CHANNELS.openGameDir),
+  openGameLogs: () => ipcRenderer.invoke(CHANNELS.openGameLogs),
 };
 
 contextBridge.exposeInMainWorld("launcherAPI", launcherAPI);

@@ -80,3 +80,20 @@ export function setupAutoUpdater(): void {
   });
   autoUpdater.checkForUpdates();
 }
+
+export function checkForUpdatesManually(): void {
+  const onNotAvailable = () => {
+    cleanup();
+    sendError("Уже последняя версия", "notification");
+  };
+  const cleanup = () => {
+    autoUpdater.off("update-not-available", onNotAvailable);
+    autoUpdater.off("update-available", cleanup);
+    autoUpdater.off("error", cleanup);
+  };
+
+  autoUpdater.once("update-not-available", onNotAvailable);
+  autoUpdater.once("update-available", cleanup);
+  autoUpdater.once("error", cleanup);
+  void autoUpdater.checkForUpdates();
+}

@@ -1,9 +1,12 @@
 import { app } from "electron";
 import path from "path";
-import { Version, launch } from "@xmcl/core";
+import { DEFAULT_EXTRA_JVM_ARGS, Version, launch } from "@xmcl/core";
 import { ChildProcess } from "child_process";
 import { mcPath } from "../../services/paths";
-import { ensureJava } from "../java";
+import { resolveLaunchJava } from "../java";
+import { readLaunchPrefs } from "../launchPrefs";
+import { applyGameWindowOptions } from "./gameWindowOptions";
+import { hideMainWindow, showMainWindow } from "../../window/createWindow";
 import {
   sendError,
   sendDownloadStatus,
@@ -73,11 +76,13 @@ function setupProcessHandlers(proc: ChildProcess): void {
   });
 
   proc.on("error", (error: Error) => {
+    showMainWindow();
     cleanupOnError("Error launching Minecraft: " + error.message);
   });
 
   proc.on("exit", (code: number | null, signal: string | null) => {
     console.log(`Minecraft ended with code: ${code}, signal: ${signal}`);
+    showMainWindow();
     sendDownloadStatus("Minecraft exited", 0, false);
     sendLaunchStatus(false);
     Status.setStatus(false);
@@ -147,7 +152,8 @@ export default async function mcLaunch(spec?: GameSpec) {
     const resolvedVersion = await Version.parse(BASE_DIR, versionId);
 
     sendDownloadStatus("Checking Java", PROGRESS_CHECK_JAVA, true);
-    const javaPath = await ensureJava(
+    const prefs = readLaunchPrefs();
+    const javaPath = await resolveLaunchJava(
       resolvedVersion.javaVersion ?? DEFAULT_JAVA
     );
 
@@ -155,6 +161,12 @@ export default async function mcLaunch(spec?: GameSpec) {
     console.log("Base Dir:", BASE_DIR);
     console.log("Java Path:", javaPath);
     console.log("Version ID:", versionId);
+
+    applyGameWindowOptions(BASE_DIR, {
+      width: prefs.windowWidth,
+      height: prefs.windowHeight,
+      fullscreen: prefs.fullscreen,
+    });
 
     sendDownloadStatus("Launching Minecraft", PROGRESS_LAUNCH, true);
     const proc: ChildProcess = await launch({
@@ -167,9 +179,21 @@ export default async function mcLaunch(spec?: GameSpec) {
       },
       minMemory: Math.min(512, gameSpec.ram),
       maxMemory: gameSpec.ram,
+      resolution: {
+        width: prefs.windowWidth,
+        height: prefs.windowHeight,
+        fullscreen: prefs.fullscreen,
+      },
+      ...(prefs.jvmArgs.length > 0
+        ? { extraJVMArgs: [...DEFAULT_EXTRA_JVM_ARGS, ...prefs.jvmArgs] }
+        : {}),
     });
 
     setupProcessHandlers(proc);
+
+    if (prefs.closeOnLaunch) {
+      hideMainWindow();
+    }
   } catch (e) {
     console.error("Launch error:", e);
     const errorMessage = e instanceof Error ? e.message : String(e);

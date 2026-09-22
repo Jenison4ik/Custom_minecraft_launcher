@@ -4,7 +4,6 @@ import ErrorToasts from "./ErrorToasts";
 import DownloadBar from "./DownloadBar";
 import LaunchButton from "./LaunchButton";
 import SettingsToggleButton from "./SettingsToggleButton";
-import "../styles/Layout.scss";
 
 export default function Layout({
   configs,
@@ -34,19 +33,21 @@ export default function Layout({
     <>
       <ErrorToasts />
       <DownloadBar />
-      <div className="controls">
+      <div className="launcher-controls">
         <LaunchButton onClick={handleRunMinecraft} />
         <InputText
           placeholder={"Nickname"}
           value={(configs["nickname"] as string) ?? "Steve"}
           inputRef={inputRef}
         />
-        <div className="buttons-box">
+        <div className="launcher-toolbar">
           <SettingsToggleButton />
           <button
             title="Open Folder"
-            onClick={window.launcherAPI.openLauncherDir}
-            className="button"
+            onClick={() => {
+              void window.launcherAPI?.openLauncherDir();
+            }}
+            className="launcher-icon-button launcher-icon-button--folder"
           >
             <img src="./folder.svg" alt="папка" />
           </button>

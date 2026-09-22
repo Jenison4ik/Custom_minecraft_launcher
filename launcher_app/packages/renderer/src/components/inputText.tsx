@@ -1,5 +1,3 @@
-import "../styles/inputText.scss";
-
 interface InputTextProps {
   placeholder: string;
   onChange?: (value: string) => void;
@@ -16,7 +14,7 @@ export default function InputText({
   return (
     <>
       <input
-        className="nick-input"
+        className="launcher-nickname"
         ref={inputRef}
         placeholder={placeholder}
         //onChange={e => onChange && onChange(e.target.value)}

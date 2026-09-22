@@ -1,0 +1,140 @@
+/*
+  Тема лаунчера. Этот файл подменяет сервер перед сборкой.
+  Меняйте значения токенов и правила положения ниже.
+  Не скрывайте блоки (display: none) и не добавляйте селекторы
+  для элементов, которых нет в разметке.
+*/
+
+:root {
+  /* Цвета */
+  --color-bg: #191a19; /* фон страницы */
+  --color-surface: #1d1d1d; /* нижняя панель, подсказка чекбокса */
+  --color-text: #e0e0e0; /* заголовки, граница панели */
+  --color-muted: #777e87; /* подписи, поле ника, память */
+  --color-accent: #4e9f3d; /* кнопка «Запустить» */
+  --color-accent-deep: #1e5128; /* градиент фона, тень кнопки запуска */
+  --color-control: #363636; /* кнопки-иконки и «Восстановить» */
+  --color-control-hover: #33363d; /* наведение на кнопки и поля */
+  --color-control-active: #636363; /* нажатие кнопки-иконки */
+  --color-field: #33363d; /* ник и число памяти */
+  --color-focus: #d8e9a8; /* обводка фокуса */
+  --color-launch-text: #fff;
+  --color-ram-border: #a1a1a1;
+  --color-download-bg: rgb(231, 231, 231);
+  --color-download-progress: rgb(88, 255, 91);
+  --color-download-text: #333;
+  --color-download-shine: #fff;
+  --color-toast-error-text: rgb(255, 198, 198);
+  --color-toast-error-bg: rgb(158, 82, 82);
+  --color-toast-notice-text: rgb(151, 236, 158);
+  --color-toast-notice-bg: rgb(39, 126, 46);
+  --color-shadow: #686868;
+  --color-shadow-soft: #888888;
+  --color-title-outline: #000;
+
+  /* Шрифты */
+  --font-display: "FontOver", sans-serif; /* заголовки и кнопка запуска */
+  --font-ui: Arial, Helvetica, sans-serif; /* поля ввода */
+  --font-body: "Roboto", sans-serif;
+  --font-size: 16px;
+  --font-size-title: 1rem;
+  --font-size-settings-title: 2rem;
+  --font-size-nick: 1.2rem;
+  --font-size-toast-title: 1.2rem;
+  --font-size-download: 14px;
+
+  /* Форма */
+  --radius-control: 5px;
+  --radius-field: 15px;
+  --radius-ram: 4px;
+  --radius-toast: 10px;
+  --radius-download: 5px 5px 0 0;
+  --shadow-title: -1px -1px 0 var(--color-title-outline),
+    1px -1px 0 var(--color-title-outline),
+    -1px 1px 0 var(--color-title-outline), 1px 1px 0 var(--color-title-outline);
+  --shadow-icon: 0px 5px 7px var(--color-shadow);
+  --shadow-launch: 0 10px var(--color-accent-deep);
+  --shadow-launch-hover: 0 10px var(--color-accent);
+  --shadow-launch-active: 0 3px var(--color-accent-deep),
+    0px 6px 6px var(--color-shadow-soft), 0 -2px 10px var(--color-shadow-soft);
+
+  /* Отступы и размер панели */
+  --page-padding: 20px;
+  --stack-gap: 10px;
+  --controls-height: 80px;
+  --controls-gap: 10px;
+  --controls-padding: 10px 20px;
+  --controls-columns: 1fr 1fr 1fr;
+}
+
+/*
+  Положение. Можно менять grid-column, order, justify-content, margin, inset.
+  Колонки нижней панели: 1 — запуск, 2 — ник, 3 — кнопки.
+*/
+
+.launcher-controls {
+  grid-template-columns: var(--controls-columns);
+}
+
+.launcher-launch {
+  grid-column: 1;
+}
+
+.launcher-nickname {
+  grid-column: 2;
+}
+
+.launcher-toolbar {
+  grid-column: 3;
+  justify-content: flex-end;
+}
+
+.launcher-icon-button--settings {
+  order: 1;
+}
+
+.launcher-icon-button--folder {
+  order: 2;
+}
+
+/* Настройки: порядок секций сверху вниз */
+.launcher-page--settings .launcher-title {
+  order: 1;
+}
+
+.launcher-page--settings .launcher-settings-pack {
+  order: 2;
+}
+
+.launcher-page--settings .launcher-settings-memory {
+  order: 3;
+}
+
+.launcher-page--settings .launcher-settings-window {
+  order: 4;
+}
+
+.launcher-page--settings .launcher-settings-launch {
+  order: 5;
+}
+
+.launcher-page--settings .launcher-settings-files {
+  order: 6;
+}
+
+.launcher-page--settings .launcher-settings-about {
+  order: 7;
+}
+
+/* Тосты: правый верхний угол */
+.launcher-toasts {
+  top: 0;
+  right: 0;
+}
+
+/* Полоса загрузки: над нижней панелью */
+.launcher-download {
+  left: 0;
+  right: 0;
+  bottom: var(--controls-height);
+}
