@@ -1,0 +1,436 @@
+* {
+  outline: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  font-family: var(--font-body);
+  font-size: var(--font-size);
+  line-height: 1.5;
+}
+
+@font-face {
+  font-family: "FontOver";
+  src: url("../FontOver.otf") format("opentype");
+  font-style: normal;
+  font-weight: normal;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+  color: var(--color-text);
+}
+
+html {
+  height: 100%;
+  font-size: var(--font-size);
+  background: linear-gradient(
+      180deg,
+      var(--color-accent-deep) -35%,
+      var(--color-bg) 30%
+    )
+    center / cover no-repeat;
+}
+
+input {
+  font-family: var(--font-ui);
+}
+
+.launcher-page {
+  width: 100%;
+  height: 100%;
+  padding: var(--page-padding);
+}
+
+.launcher-title,
+.launcher-subtitle {
+  font-family: var(--font-display);
+  font-size: var(--font-size-title);
+  color: var(--color-text);
+  text-shadow: var(--shadow-title);
+}
+
+.launcher-page--settings {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--stack-gap);
+  height: 100%;
+  overflow-y: auto;
+  padding-bottom: calc(var(--controls-height) + 16px);
+}
+
+.launcher-settings-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--stack-gap);
+}
+
+.launcher-settings-line,
+.launcher-settings-list,
+.launcher-settings-hint {
+  color: var(--color-muted);
+}
+
+.launcher-settings-list {
+  padding-left: 18px;
+}
+
+.launcher-settings-hint {
+  font-size: 14px;
+}
+
+.launcher-settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--color-muted);
+  width: min(100%, 520px);
+}
+
+.launcher-settings-row {
+  display: flex;
+  gap: 10px;
+  width: min(100%, 520px);
+}
+
+.launcher-settings-input {
+  border: 1px solid var(--color-ram-border);
+  background-color: var(--color-field);
+  color: var(--color-text);
+  border-radius: var(--radius-ram);
+  padding: 6px 8px;
+  font-family: var(--font-ui);
+}
+
+.launcher-settings-input:focus-visible {
+  border-color: var(--color-focus);
+}
+
+.launcher-settings-input--number {
+  width: 120px;
+}
+
+.launcher-settings-jvm {
+  min-height: 88px;
+  resize: vertical;
+}
+
+.launcher-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.launcher-settings-actions .launcher-restore,
+.launcher-settings-about .launcher-restore {
+  width: auto;
+}
+
+.launcher-page--settings .launcher-title {
+  font-size: var(--font-size-settings-title);
+  margin: 0;
+}
+
+.launcher-check {
+  color: var(--color-muted);
+}
+
+.launcher-check:hover,
+.launcher-check:hover .launcher-check-input {
+  cursor: pointer;
+}
+
+.launcher-check-input {
+  margin-right: 5px;
+}
+
+.launcher-check-hint {
+  margin-left: 10px;
+  color: var(--color-surface);
+}
+
+.launcher-ram {
+  display: flex;
+  color: var(--color-muted);
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--color-surface);
+}
+
+.launcher-ram-fields {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+}
+
+.launcher-ram-value {
+  border: 1px solid var(--color-ram-border);
+  background-color: var(--color-field);
+  color: var(--color-muted);
+  width: 60px;
+  padding: 2px 4px;
+  border-radius: var(--radius-ram);
+}
+
+.launcher-ram-value:focus-visible {
+  border: 1px solid var(--color-focus);
+}
+
+.launcher-controls {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--controls-height);
+  display: grid;
+  gap: var(--controls-gap);
+  padding: var(--controls-padding);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-text);
+  z-index: 1000;
+}
+
+.launcher-toolbar {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.launcher-icon-button {
+  background-color: var(--color-control);
+  height: 60px;
+  width: 60px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+  transition: all ease-out 0.2s;
+  justify-self: end;
+}
+
+.launcher-icon-button:hover {
+  cursor: pointer;
+  background-color: var(--color-control-hover);
+  transform: scale(1.05);
+  box-shadow: var(--shadow-icon);
+}
+
+.launcher-icon-button:active {
+  transition: all ease-out 0.1s;
+  background-color: var(--color-control-active);
+  transform: scale(0.9);
+  box-shadow: none;
+}
+
+.launcher-icon-button img {
+  width: 40px;
+  height: auto;
+}
+
+.launcher-launch {
+  text-shadow: var(--shadow-title);
+  font-family: var(--font-display);
+  bottom: 3px;
+  position: relative;
+  font-size: var(--font-size-title);
+  font-weight: bolder;
+  color: var(--color-launch-text);
+  background-color: var(--color-accent);
+  padding: 10px 20px;
+  border-radius: var(--radius-control);
+  transition:
+    top ease-out 0.2s,
+    background-color ease-out 0.2s,
+    box-shadow ease-out 0.2s;
+  min-width: 230px;
+  perspective: 500px;
+  transform: rotate3d(1, 0, 0, 340deg);
+  box-shadow: var(--shadow-launch);
+}
+
+.launcher-launch:disabled {
+  filter: brightness(0.7);
+  cursor: default;
+  background-color: var(--color-accent);
+  box-shadow: var(--shadow-launch);
+}
+
+.launcher-launch:hover:not(:disabled) {
+  background-color: var(--color-accent-deep);
+  box-shadow: var(--shadow-launch-hover);
+  cursor: pointer;
+}
+
+.launcher-launch:active:not(:disabled) {
+  top: 6px;
+  box-shadow: var(--shadow-launch-active);
+}
+
+.launcher-nickname {
+  background-color: var(--color-field);
+  color: var(--color-muted);
+  border-radius: var(--radius-field);
+  padding: 10px 15px;
+  font-size: var(--font-size-nick);
+  transition: all ease-out 0.3s;
+}
+
+.launcher-nickname:focus-visible {
+  outline: 1px solid var(--color-focus);
+}
+
+.launcher-restore {
+  background-color: var(--color-control);
+  color: var(--color-muted);
+  width: 20%;
+  min-width: 250px;
+  height: 30px;
+  padding: 5px 10px;
+  box-sizing: content-box;
+  border-radius: var(--radius-control);
+  transition: background-color ease-out 0.2s;
+}
+
+.launcher-restore:hover {
+  background-color: var(--color-control-hover);
+  cursor: pointer;
+}
+
+.launcher-restore:disabled {
+  cursor: default;
+  filter: brightness(0.7);
+}
+
+.launcher-restore:disabled:hover {
+  background-color: var(--color-control);
+}
+
+.launcher-download {
+  position: fixed;
+  overflow: hidden;
+  border-radius: var(--radius-download);
+  background-color: var(--color-download-bg);
+  height: 40px;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 15px;
+  padding: 0 15px;
+  transform: translate(0, 40px);
+}
+
+.launcher-download-message {
+  font-size: var(--font-size-download);
+  color: var(--color-download-text);
+  font-weight: 500;
+  margin-left: 10px;
+  z-index: 1;
+}
+
+.launcher-download-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  height: 100%;
+  background-color: var(--color-download-progress);
+  margin: 0;
+  z-index: -1;
+  transition: width 0.8s ease-out;
+  overflow: hidden;
+}
+
+.launcher-download-animation {
+  background-color: var(--color-download-shine);
+  position: absolute;
+  bottom: -20px;
+  top: -20px;
+  width: 30px;
+  filter: blur(13px);
+  transform: rotate(-30deg);
+  left: 0;
+  animation: launcher-download-animation 1.5s linear 0s infinite normal backwards;
+}
+
+.launcher-download--visible {
+  transform: translate(0, 0);
+}
+
+@keyframes launcher-download-animation {
+  0% {
+    left: -60px;
+  }
+  100% {
+    left: 110%;
+  }
+}
+
+.launcher-toasts {
+  position: fixed;
+  display: flex;
+  overflow: visible;
+  width: 1px;
+  height: auto;
+  flex-direction: column;
+  align-items: end;
+  justify-content: flex-end;
+  z-index: 1000;
+  gap: 5px;
+  padding: 10px;
+}
+
+.launcher-toast {
+  overflow: hidden;
+  box-sizing: border-box;
+  transition: all 0.3s ease-out;
+  padding: 20px 5px;
+  border-radius: var(--radius-toast);
+  width: fit-content;
+  min-width: 200px;
+  max-width: 40vw;
+  height: auto;
+  flex: 0 0 auto;
+}
+
+.launcher-toast .launcher-subtitle {
+  margin: 0;
+  padding: 0;
+  font-size: var(--font-size-toast-title);
+}
+
+.launcher-toast p {
+  margin: 0;
+  padding: 0;
+}
+
+.launcher-toast--error {
+  color: var(--color-toast-error-text);
+  border: 1px solid var(--color-toast-error-text);
+  background-color: var(--color-toast-error-bg);
+}
+
+.launcher-toast--notice {
+  color: var(--color-toast-notice-text);
+  border: 1px solid var(--color-toast-notice-text);
+  background-color: var(--color-toast-notice-bg);
+}
+
+.launcher-toast--fade {
+  opacity: 0;
+  transition: 0.7s ease-out;
+}

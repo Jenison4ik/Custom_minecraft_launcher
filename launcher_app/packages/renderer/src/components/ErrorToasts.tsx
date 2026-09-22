@@ -1,0 +1,64 @@
+import ErrorBox from "./ErrorBox";
+import { useState, useEffect } from "react";
+
+export default function ErrorToasts() {
+  const [errors, setErrors] = useState<
+    {
+      id: number;
+      message: string;
+      type: "error" | "notification";
+      isFade: boolean;
+    }[]
+  >([]);
+
+  useEffect(() => {
+    if (!window.launcherAPI) return;
+    window.launcherAPI.onError((message, type) => {
+      const newErrorId = Math.random();
+      setErrors((prevErrors) => [
+        { id: newErrorId, message, type, isFade: false },
+        ...prevErrors,
+      ]);
+      console[type === "error" ? "error" : "log"](
+        type === "error"
+          ? "Error received from API: "
+          : "Message received from API",
+        message
+      );
+
+      setTimeout(() => {
+        setErrors((prevErrors) => {
+          return prevErrors.map((error) => {
+            if (error.id === newErrorId) {
+              return { ...error, isFade: true };
+            }
+            return error;
+          });
+        });
+
+        setTimeout(() => {
+          setErrors((prevErrors) =>
+            prevErrors.filter((error) => error.id !== newErrorId)
+          );
+        }, 700);
+      }, 5000);
+    });
+    return () => {
+      // Unsubscribe from errors on unmount
+      window.launcherAPI.onError(() => {});
+    };
+  }, []);
+
+  return (
+    <div className="launcher-toasts">
+      {errors.map((error) => (
+        <ErrorBox
+          type={error.type === "error" ? "error" : "notification"}
+          key={error.id}
+          message={error.message}
+          isFade={error.isFade}
+        />
+      ))}
+    </div>
+  );
+}
