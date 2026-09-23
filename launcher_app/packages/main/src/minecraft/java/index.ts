@@ -2,8 +2,9 @@ import * as fs from "fs";
 import * as path from "path";
 import { app } from "electron";
 import {
+  byteProgress,
   sendError,
-  sendDownloadStatus,
+  sendPhase,
 } from "../../services/notifyService";
 import { getUndiciAgent } from "../../utils/undiciAgent";
 import { readLaunchPrefs } from "../launchPrefs";
@@ -58,16 +59,15 @@ export async function ensureJava(javaVersion: JavaVersion): Promise<string> {
       onStart(t) {
         console.log(`Starting Java install: ${t.path}`);
       },
-      onUpdate(t, chunk) {
-        sendDownloadStatus(`${t.total}`, t.progress, true);
+      onUpdate(t) {
+        byteProgress("Java", t.progress, t.total);
       },
       onFailed(t, err) {
         console.error(`Java install failed: ${t.path}`, err);
-        sendDownloadStatus(`${t.total}`, t.progress, false);
+        sendPhase("Java install failed", false);
       },
       onSucceed(t) {
         console.log(`Java installed: ${t.path}`);
-        sendDownloadStatus(`${t.total}`, t.progress, false);
       },
     });
 

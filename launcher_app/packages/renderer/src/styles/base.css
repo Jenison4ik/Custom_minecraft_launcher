@@ -340,6 +340,10 @@ input {
   font-weight: 500;
   margin-left: 10px;
   z-index: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .launcher-download-progress {
@@ -351,7 +355,7 @@ input {
   background-color: var(--color-download-progress);
   margin: 0;
   z-index: -1;
-  transition: width 0.8s ease-out;
+  transition: width 0.15s ease-out;
   overflow: hidden;
 }
 

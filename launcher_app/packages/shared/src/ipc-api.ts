@@ -5,6 +5,14 @@ export type ConfigEntry = {
 
 export type ErrorToastType = "error" | "notification";
 
+export interface DownloadStatus {
+  active: boolean;
+  title: string;
+  /** null, если размер неизвестен — полоса без процентов */
+  loadedBytes: number | null;
+  totalBytes: number | null;
+}
+
 export interface LauncherServerInfo {
   ip: string;
   lable: string;
@@ -28,12 +36,8 @@ export interface LauncherAPI {
     callback: (message: string, type: ErrorToastType) => void
   ) => void;
   onDownloadStatus: (
-    callback: (
-      message: string,
-      progress: number,
-      isDownloading: boolean
-    ) => void
-  ) => void;
+    callback: (status: DownloadStatus) => void
+  ) => () => void;
   onMinecraft: (callback: (status: boolean) => void) => () => void;
   downloadMinecraft: () => Promise<void>;
   getStatus: () => Promise<boolean>;

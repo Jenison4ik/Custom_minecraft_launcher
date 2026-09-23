@@ -93,12 +93,6 @@ export interface LauncherProperties {
   servers: ServerInfo[];
 }
 
-export interface DownloadStatus {
-  message: string;
-  progress: number;
-  isDownloading: boolean;
-}
-
 export interface LogMessage {
   type: 'log' | 'error' | 'warn' | 'info';
   msg: string;

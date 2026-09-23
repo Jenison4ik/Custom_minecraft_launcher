@@ -9,8 +9,8 @@ import { applyGameWindowOptions } from "./gameWindowOptions";
 import { hideMainWindow, showMainWindow } from "../../window/createWindow";
 import {
   sendError,
-  sendDownloadStatus,
   sendLaunchStatus,
+  sendPhase,
 } from "../../services/notifyService";
 import Status from "../../services/statusService";
 import mcInstall from "../installer";
@@ -23,14 +23,6 @@ import {
 import type { GameSpec } from "../../types/LauncherConfig";
 import type { JavaVersion } from "@xmcl/core";
 
-const PROGRESS_CHECK_JAVA = 10;
-const PROGRESS_PARSE_VERSION = 20;
-const PROGRESS_LAUNCH = 30;
-const PROGRESS_INIT_SESSION = 50;
-const PROGRESS_FORGE = 60;
-const PROGRESS_LOAD_GRAPHICS = 80;
-const PROGRESS_COMPLETE = 100;
-
 const DEFAULT_JAVA: JavaVersion = {
   majorVersion: 8,
   component: "jre-legacy",
@@ -38,7 +30,7 @@ const DEFAULT_JAVA: JavaVersion = {
 
 function cleanupOnError(errorMessage: string): void {
   sendError(errorMessage);
-  sendDownloadStatus("Error launching Minecraft", 0, false);
+  sendPhase("Error launching Minecraft", false);
   sendLaunchStatus(false);
   Status.setStatus(false);
 }
@@ -49,17 +41,17 @@ function setupProcessHandlers(proc: ChildProcess): void {
     console.log("[MC]", line);
 
     if (line.includes("Setting user")) {
-      sendDownloadStatus("Initializing session", PROGRESS_INIT_SESSION, true);
+      sendPhase("Initializing session");
     }
     if (line.includes("LWJGL") || line.includes("OpenGL")) {
-      sendDownloadStatus("Loading graphics", PROGRESS_LOAD_GRAPHICS, true);
+      sendPhase("Loading graphics");
     }
     if (
       line.includes("OpenAL initialized") ||
       line.includes("Sound engine started") ||
       line.includes("Successfully loaded")
     ) {
-      sendDownloadStatus("Minecraft launched", PROGRESS_COMPLETE, false);
+      sendPhase("Minecraft launched", false);
     }
   });
 
@@ -71,7 +63,7 @@ function setupProcessHandlers(proc: ChildProcess): void {
       line.includes("Launching wrapped minecraft") ||
       line.includes("ModLauncher running")
     ) {
-      sendDownloadStatus("Starting Forge", PROGRESS_FORGE, true);
+      sendPhase("Starting Forge");
     }
   });
 
@@ -83,7 +75,7 @@ function setupProcessHandlers(proc: ChildProcess): void {
   proc.on("exit", (code: number | null, signal: string | null) => {
     console.log(`Minecraft ended with code: ${code}, signal: ${signal}`);
     showMainWindow();
-    sendDownloadStatus("Minecraft exited", 0, false);
+    sendPhase("Minecraft exited", false);
     sendLaunchStatus(false);
     Status.setStatus(false);
   });
@@ -144,14 +136,10 @@ export default async function mcLaunch(spec?: GameSpec) {
       versionId = existing;
     }
 
-    sendDownloadStatus(
-      "Parsing Minecraft version",
-      PROGRESS_PARSE_VERSION,
-      true
-    );
+    sendPhase("Parsing Minecraft version");
     const resolvedVersion = await Version.parse(BASE_DIR, versionId);
 
-    sendDownloadStatus("Checking Java", PROGRESS_CHECK_JAVA, true);
+    sendPhase("Checking Java");
     const prefs = readLaunchPrefs();
     const javaPath = await resolveLaunchJava(
       resolvedVersion.javaVersion ?? DEFAULT_JAVA
@@ -168,7 +156,7 @@ export default async function mcLaunch(spec?: GameSpec) {
       fullscreen: prefs.fullscreen,
     });
 
-    sendDownloadStatus("Launching Minecraft", PROGRESS_LAUNCH, true);
+    sendPhase("Launching Minecraft");
     const proc: ChildProcess = await launch({
       gamePath: BASE_DIR,
       javaPath: javaPath,

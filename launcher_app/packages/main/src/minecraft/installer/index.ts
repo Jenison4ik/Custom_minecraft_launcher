@@ -15,8 +15,9 @@ import { setMaxListeners } from "events";
 
 import { mcPath } from "../../services/paths";
 import {
-  sendDownloadStatus,
+  byteProgress,
   sendError,
+  sendPhase,
 } from "../../services/notifyService";
 import { setupUndiciAgent } from "../../utils/undiciAgent";
 import { resolveLaunchJava } from "../java";
@@ -67,39 +68,30 @@ function formatError(error: InstallationError): string {
 
 async function runTaskWithRetry<T>(
   createTask: () => Task<T>,
-  onProgress?: (progress: number, total: number) => void,
+  title: string,
   retries = 7
 ): Promise<T> {
   let lastError: unknown;
-  let accumulatedProgress = 0;
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     const task = createTask();
-
-    let interval: NodeJS.Timeout | null = null;
-    if (onProgress) {
-      interval = setInterval(() => {
-        const currentProgress = (task.progress ?? 0) + accumulatedProgress;
-        const currentTotal = task.total ?? 0;
-        onProgress(currentProgress, currentTotal);
-      }, 500);
-    }
+    const interval = setInterval(() => {
+      byteProgress(title, task.progress, task.total);
+    }, 200);
 
     try {
       const result = await task.startAndWait();
-      if (interval) clearInterval(interval);
-      accumulatedProgress += task.total ?? 0;
+      clearInterval(interval);
+      byteProgress(title, task.progress, task.total);
       return result;
     } catch (e) {
-      if (interval) clearInterval(interval);
+      clearInterval(interval);
       lastError = e;
       console.warn(`Retry ${attempt}/${retries}`, e);
 
       if (isChecksumNotMatchError(e as InstallationError)) {
         deleteCorruptedFile(e as InstallationError);
       }
-
-      accumulatedProgress += task.progress ?? 0;
 
       if (attempt < retries) {
         await new Promise((r) => setTimeout(r, 1500));
@@ -120,12 +112,12 @@ async function ensureVanillaBase(
   let needLibraries = true;
 
   try {
-    sendDownloadStatus("Checking Minecraft version...", 0, true);
+    sendPhase("Checking Minecraft version...");
     resolvedVersion = await checkVersionFiles(mcDir, mcVersion);
     needVersion = false;
 
     try {
-      sendDownloadStatus("Checking assets...", 15, true);
+      sendPhase("Checking assets...");
       await checkAssetFiles(mcDir, resolvedVersion);
       needAssets = false;
     } catch {
@@ -133,7 +125,7 @@ async function ensureVanillaBase(
     }
 
     try {
-      sendDownloadStatus("Checking libraries...", 25, true);
+      sendPhase("Checking libraries...");
       await checkLibraryFiles(mcDir, resolvedVersion);
       needLibraries = false;
     } catch {
@@ -158,20 +150,10 @@ async function ensureVanillaBase(
   const versionMeta = versions[0];
 
   if (needVersion) {
-    sendDownloadStatus("Installing Minecraft version...", 0, true);
+    sendPhase("Downloading Minecraft version");
     resolvedVersion = await runTaskWithRetry(
       () => installVersionTask(versionMeta, mcDir),
-      (progress, total) => {
-        const percent = Math.min(
-          30,
-          total ? Math.floor((progress / total) * 30) : progress
-        );
-        sendDownloadStatus(
-          `Downloading Minecraft version ${Math.floor(progress / 1048576)} MB of ${Math.floor(total / 1048576)} MB`,
-          percent,
-          true
-        );
-      }
+      "Downloading Minecraft version"
     );
   } else {
     resolvedVersion = await Version.parse(mcDir, mcVersion);
@@ -179,42 +161,24 @@ async function ensureVanillaBase(
 
   if (needAssets && resolvedVersion) {
     resolvedVersion = await Version.parse(mcDir, resolvedVersion.id);
-    sendDownloadStatus("Installing assets...", 30, true);
+    sendPhase("Downloading assets");
     await runTaskWithRetry(
       () =>
         installAssetsTask(resolvedVersion!, {
           assetsDownloadConcurrency: DOWNLOAD_CONCURRENCY,
         }),
-      (progress, total) => {
-        const percent =
-          30 +
-          Math.min(15, total ? Math.floor((progress / total) * 15) : progress);
-        sendDownloadStatus(
-          `Downloading assets ${Math.floor(progress / 1048576)} MB of ${Math.floor(total / 1048576)} MB`,
-          percent,
-          true
-        );
-      }
+      "Downloading assets"
     );
   }
 
   if (needLibraries && resolvedVersion) {
-    sendDownloadStatus("Installing libraries...", 45, true);
+    sendPhase("Downloading libraries");
     await runTaskWithRetry(
       () =>
         installLibrariesTask(resolvedVersion!, {
           librariesDownloadConcurrency: DOWNLOAD_CONCURRENCY,
         }),
-      (progress, total) => {
-        const percent =
-          45 +
-          Math.min(10, total ? Math.floor((progress / total) * 10) : progress);
-        sendDownloadStatus(
-          `Downloading libraries ${Math.floor(progress / 1048576)} MB of ${Math.floor(total / 1048576)} MB`,
-          percent,
-          true
-        );
-      }
+      "Downloading libraries"
     );
   }
 
@@ -273,14 +237,14 @@ export default async function mcInstall(spec: GameSpec): Promise<string> {
   try {
     const vanilla = await ensureVanillaBase(mcDir, spec.mcVersion);
 
-    sendDownloadStatus("Checking Java...", 50, true);
+    sendPhase("Checking Java...");
     const javaPath = await resolveLaunchJava(
       vanilla.javaVersion ?? DEFAULT_JAVA
     );
 
     const versionId = await installLoader(spec, mcDir, javaPath);
 
-    sendDownloadStatus("Installing version dependencies...", 80, true);
+    sendPhase("Installing version dependencies...");
     const resolved = await Version.parse(mcDir, versionId);
     await runTaskWithRetry(
       () =>
@@ -288,19 +252,10 @@ export default async function mcInstall(spec: GameSpec): Promise<string> {
           assetsDownloadConcurrency: DOWNLOAD_CONCURRENCY,
           librariesDownloadConcurrency: DOWNLOAD_CONCURRENCY,
         }),
-      (progress, total) => {
-        const percent =
-          80 +
-          Math.min(19, total ? Math.floor((progress / total) * 19) : progress);
-        sendDownloadStatus(
-          `Dependencies ${Math.floor(progress / 1048576)} MB of ${Math.floor(total / 1048576)} MB`,
-          percent,
-          true
-        );
-      }
+      "Installing version dependencies..."
     );
 
-    sendDownloadStatus("Minecraft installation complete", 100, false);
+    sendPhase("Minecraft installation complete", false);
     return versionId;
   } catch (e) {
     const error = e as InstallationError;
@@ -311,7 +266,7 @@ export default async function mcInstall(spec: GameSpec): Promise<string> {
     }
 
     sendError(`Installation error: ${formatError(error)}`);
-    sendDownloadStatus("Installation error", 0, false);
+    sendPhase("Installation error", false);
     throw error;
   }
 }

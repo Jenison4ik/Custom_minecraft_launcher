@@ -1,0 +1,76 @@
+{
+  "files": {
+    "adorabuild-structures-2.8.0-fabric-1.20.1.jar": {
+      "sha1": "cb5ca774b2512b00b86942301d53dd80e82a1934",
+      "size": 648520
+    },
+    "adventurez-1.4.20.jar": {
+      "sha1": "a727891db0b750fda3c4e6f15e2781b89c490647",
+      "size": 4952938
+    },
+    "aether-1.20.1-1.5.2-beta.9-fabric.jar": {
+      "sha1": "c758410ffc1b0ec7c92120a6a86ac91d3d7df662",
+      "size": 51365899
+    },
+    "appleskin-fabric-mc1.20.1-2.5.1.jar": {
+      "sha1": "d0f11243f79c071416bbcee781ae93eb57a0283c",
+      "size": 1064362
+    },
+    "Aquamirae-6.jar": {
+      "sha1": "13feb2c346d372b3bec57f1ad2e151d87f65e5d6",
+      "size": 16111383
+    },
+    "architectury-9.2.14-fabric.jar": {
+      "sha1": "4fa65e32dbf63a871a30fe8ec6fbff9a4b8d007d",
+      "size": 585207
+    },
+    "ATi Structures V1.4.3 (1.20+).jar": {
+      "sha1": "bd318a7ad0efe7a639301ee8ea17821caa32ddf0",
+      "size": 3195854
+    },
+    "AttributeFix-Fabric-1.20.1-21.0.4.jar": {
+      "sha1": "9688bf005eb31d7cc9576f535acf819376d47068",
+      "size": 17975
+    },
+    "bettercombat-fabric-1.8.6+1.20.1.jar": {
+      "sha1": "92355cccfe5f1ddff1f03e6079bc7a764e63a6f7",
+      "size": 902833
+    },
+    "c2me-fabric-mc1.20.1-0.2.0+alpha.11.16.jar": {
+      "sha1": "94d96b5fffd9e98bd8448dcdd9e27f60511b1d29",
+      "size": 1426500
+    },
+    "mods/fabric-api-0.92.12+1.20.1.jar": {
+      "sha1": "3e9cdd3e2f827ca9a259df9eb8e31949437b6bd4",
+      "size": 2137232
+    },
+    "mods/iris-1.7.6+mc1.20.1.jar": {
+      "sha1": "880c0b9ce38bb4997645793407c1801df83f4233",
+      "size": 2726899
+    },
+    "mods/modmenu-7.2.2.jar": {
+      "sha1": "099c68feeb74887cbbbd8ce9a27c6123804a2c5a",
+      "size": 721366
+    },
+    "mods/ferritecore-6.0.1-fabric.jar": {
+      "sha1": "8fa3b84fc5860dbc30fdf8cced02af68dffcf3fa",
+      "size": 125197
+    },
+    "mods/curios-forge-5.14.1+1.20.1.jar": {
+      "sha1": "452175b95ad3db6ff58bb8968f6bf7a9d1e0f480",
+      "size": 398066
+    },
+    "chisel-fabric-2.0.0+mc1.20.1.jar": {
+      "sha1": "bed8de7dd7a2464c3c818ebe4ec31b80f34ea5c8",
+      "size": 8268711
+    },
+    "accessories-fabric-1.0.0-beta.47+1.20.1.jar": {
+      "sha1": "b2290b215a8f7e9a2676b87ac1192271eae7467d",
+      "size": 763896
+    },
+    "mods/sodium-extra-0.5.9+mc1.20.1.jar": {
+      "sha1": "0f97ec3f395b223848a63573b1a46cbecf97f19f",
+      "size": 370701
+    }
+  }
+}

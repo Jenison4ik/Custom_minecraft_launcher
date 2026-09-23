@@ -1,5 +1,5 @@
 import { installNeoForged } from "@xmcl/installer";
-import { sendDownloadStatus } from "../../services/notifyService";
+import { sendPhase } from "../../services/notifyService";
 import {
   findVersionId,
   listInstalledVersionIds,
@@ -54,7 +54,7 @@ export default async function installNeoForgeLoader(options: {
 }): Promise<string> {
   const { mcVersion, mcDir, loaderVersion, javaPath } = options;
 
-  sendDownloadStatus("Resolving NeoForge version...", 55, true);
+  sendPhase("Resolving NeoForge version...");
   const neoVersion = await resolveNeoForgeVersion(mcVersion, loaderVersion);
 
   const installed = listInstalledVersionIds(mcDir);
@@ -67,16 +67,12 @@ export default async function installNeoForgeLoader(options: {
   if (existingId) {
     const parsed = await tryParseVersion(mcDir, existingId);
     if (parsed) {
-      sendDownloadStatus(`NeoForge already installed: ${existingId}`, 70, true);
+      sendPhase(`NeoForge already installed: ${existingId}`);
       return existingId;
     }
   }
 
-  sendDownloadStatus(
-    `Installing NeoForge ${neoVersion}...`,
-    60,
-    true
-  );
+  sendPhase(`Installing NeoForge ${neoVersion}...`);
 
   const versionId = await installNeoForged(
     "neoforge",
@@ -85,6 +81,6 @@ export default async function installNeoForgeLoader(options: {
     javaPath ? { java: javaPath, side: "client" } : { side: "client" }
   );
 
-  sendDownloadStatus(`NeoForge installed: ${versionId}`, 75, true);
+  sendPhase(`NeoForge installed: ${versionId}`);
   return versionId;
 }

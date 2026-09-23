@@ -115,19 +115,14 @@ Nginx поднимается по HTTP, после сертификата пер
 
 | Метод | Путь | Назначение |
 | --- | --- | --- |
-| `POST` | `/minecraft/api/upload` | ZIP сборки (`x-secret-key`, поле `file`) → `manifest.json` и `minecraft_files.zip` |
-| `GET` | `/minecraft/api/download` | Скачать архив сборки |
 | `GET` | `/minecraft/api/manifest` | Манифест файлов (SHA-1 и размер) |
-| `GET` | `/minecraft/api/latest` | Версия лаунчера из `version.json` |
-| `GET` | `/minecraft/api/latest.yml` | Метаданные для `electron-updater` |
-| `GET` | `/minecraft/api/downloadGame.exe` | Установщик лаунчера |
-| `POST` | `/minecraft/api/uploadGame` | Обновление лаунчера (`x-secret-key`, `version`, `file`, `yml`) |
+| `GET` | `/minecraft/api/download` | ZIP сборки для старых клиентов |
+| `GET` | `/minecraft/api/v1/manifest` | Тот же манифест |
+| `GET` | `/minecraft/api/v1/files/<путь>` | Один файл сборки |
+| `POST` | `/minecraft/api/v1/auth/login` | JWT для админки |
+| `GET` | `/admin` | Админ-панель |
 
-Загрузка закрыта заголовком `x-secret-key` (значение `SECRET_KEY` из `.env`).
-
-Обновить сборку: упакуйте содержимое `.minecraft` в ZIP и отправьте на `POST /minecraft/api/upload`. Клиенты подтянут отличия при следующем запуске.
-
-Обновить лаунчер: `npm run pack` в `launcher_app`, затем ZIP установщика и содержимое `latest.yml` на `POST /minecraft/api/uploadGame`.
+Загрузка сборки и лаунчера идёт через панель и JWT (`ADMIN_USERNAME`, `ADMIN_PASSWORD`, `JWT_SECRET`). Старые `GET /manifest` и `GET /download` остаются.
 
 ## Стек
 

@@ -2,7 +2,7 @@ import { BrowserWindow, dialog } from "electron";
 import { autoUpdater } from "electron-updater";
 import { CHANNELS } from "@jenison/shared";
 import properties from "../config/launcherProperties";
-import { sendDownloadStatus, sendError } from "./notifyService";
+import { byteProgress, sendError, sendPhase } from "./notifyService";
 
 let updateReadyToInstall = false;
 
@@ -11,7 +11,7 @@ export function setupAutoUpdater(): void {
 
   autoUpdater.on("update-downloaded", () => {
     updateReadyToInstall = true;
-    sendDownloadStatus("Update downloaded. Ready to install.", 100, false);
+    sendPhase("Update downloaded. Ready to install.", false);
     const windows = BrowserWindow.getAllWindows();
     if (windows.length > 0) {
       windows[0].webContents.send(CHANNELS.launchMinecraft, false);
@@ -46,7 +46,7 @@ export function setupAutoUpdater(): void {
       .then((result) => {
         if (result.response === 0) {
           autoUpdater.downloadUpdate();
-          sendDownloadStatus("Starting update download...", 0, true);
+          sendPhase("Starting update download...");
           const windows = BrowserWindow.getAllWindows();
           if (windows.length > 0) {
             windows[0].webContents.send(CHANNELS.launchMinecraft, true);
@@ -56,18 +56,14 @@ export function setupAutoUpdater(): void {
   });
 
   autoUpdater.on("download-progress", (progress) => {
-    sendDownloadStatus(
-      "Downloading update...",
-      Math.floor(progress.percent),
-      true
-    );
+    byteProgress("Downloading update...", progress.transferred, progress.total);
   });
 
   autoUpdater.on("error", (error) => {
     sendError(
       `Auto-update error: ${error ? error.message : "Unknown error"}`
     );
-    sendDownloadStatus("Error during download", 0, false);
+    sendPhase("Error during download", false);
     const windows = BrowserWindow.getAllWindows();
     if (windows.length > 0) {
       windows[0].webContents.send(CHANNELS.launchMinecraft, false);

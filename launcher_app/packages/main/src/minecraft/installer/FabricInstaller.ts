@@ -3,7 +3,7 @@ import {
   installFabric,
   type FabricLoaderArtifact,
 } from "@xmcl/installer";
-import { sendDownloadStatus } from "../../services/notifyService";
+import { sendPhase } from "../../services/notifyService";
 import {
   findVersionId,
   listInstalledVersionIds,
@@ -40,7 +40,7 @@ export default async function installFabricLoader(options: {
 }): Promise<string> {
   const { mcVersion, mcDir, loaderVersion } = options;
 
-  sendDownloadStatus("Fetching Fabric version list...", 55, true);
+  sendPhase("Fetching Fabric version list...");
   const artifacts = await getLoaderArtifactListFor(mcVersion);
   const artifact = pickFabricArtifact(artifacts, loaderVersion);
   const loaderVer = artifact.loader.version;
@@ -58,16 +58,12 @@ export default async function installFabricLoader(options: {
   if (existingId) {
     const parsed = await tryParseVersion(mcDir, existingId);
     if (parsed) {
-      sendDownloadStatus(`Fabric already installed: ${existingId}`, 70, true);
+      sendPhase(`Fabric already installed: ${existingId}`);
       return existingId;
     }
   }
 
-  sendDownloadStatus(
-    `Installing Fabric Loader ${loaderVer}...`,
-    60,
-    true
-  );
+  sendPhase(`Installing Fabric Loader ${loaderVer}...`);
 
   const versionId = await installFabric({
     minecraftVersion: mcVersion,
@@ -76,6 +72,6 @@ export default async function installFabricLoader(options: {
     side: "client",
   });
 
-  sendDownloadStatus(`Fabric installed: ${versionId}`, 75, true);
+  sendPhase(`Fabric installed: ${versionId}`);
   return versionId;
 }

@@ -1,363 +1,125 @@
-# Server API — документация
+# Server API
 
-Серверное приложение (`server_app`) раздаёт сборку Minecraft и обновления лаунчера клиентам. Лаунчер обращается к базовому URL вида:
+Базовый URL лаунчера: `https://<домен>/minecraft/api`.
 
-```text
-https://<ваш-домен>/minecraft/api
+Старые клиенты читают манифест и скачивают сборку одним ZIP. Новая пофайловая отдача и админка живут на `/minecraft/api/v1`. Панель открывается по `/admin`.
+
+## Локально без SSL
+
+Скопируйте `.env.example` в `.env`. `DOMAIN` и сертификаты не нужны.
+
+```bash
+npm install
+npm run dev
 ```
 
-Этот URL задаётся в `launcher_app/packages/main/src/launcherProperties.ts` (поле `url`).
+В другом терминале:
 
----
-
-## Как это работает
-
-```text
-┌─────────────────┐         GET /manifest          ┌──────────────────┐
-│  Лаунчер (ПК)   │ ──────────────────────────────►│   server_app     │
-│                 │ ◄──────────────────────────────│                  │
-│  1. Сравнивает  │         JSON манифест          │  data/           │
-│     локальные   │                                │   manifest.json  │
-│     файлы с     │         GET /download          │   minecraft_     │
-│     сервером    │ ──────────────────────────────►│   files.zip      │
-│                 │ ◄──────────────────────────────│   version.json   │
-│  2. При         │         ZIP сборки             │   latest.yml     │
-│     расхождении │                                │                  │
-│     качает ZIP  │         GET /latest.yml        │  game/  (распак. │
-│                 │ ──────────────────────────────►│         сборка)  │
-│  3. electron-   │ ◄──────────────────────────────│  launcher/       │
-│     updater     │         метаданные обновления  │   (установщик)   │
-└─────────────────┘                                └──────────────────┘
+```bash
+cd admin
+npm install
+npm run dev
 ```
 
-1. При запуске игры лаунчер строит локальный манифест `.minecraft` и сравнивает его с `GET /manifest`.
-2. Если SHA-1 или размер файлов не совпадают (или файлов нет) — скачивается `GET /download`, архив распаковывается поверх локальной сборки.
-3. Обновления самого лаунчера идут через `electron-updater`: читается `latest.yml`, затем скачивается установщик.
+API: `http://localhost:8080`. Панель: `http://localhost:5173/admin`. Vite проксирует `/minecraft/api` на API.
 
-Загрузка новых файлов на сервер (админские операции) защищена заголовком `x-secret-key`.
+Docker без nginx:
 
----
+```bash
+docker compose -f docker-compose.local.yml up --build
+```
 
-## Директории на сервере
+Продакшен с HTTPS по-прежнему поднимается через `docker-compose.yml` и nginx.
+
+## Каталоги
 
 | Путь | Назначение |
 |------|------------|
-| `game/` | Распакованная актуальная сборка Minecraft (моды, versions, libraries, assets и т.д.) |
-| `data/` | Служебные файлы API: `manifest.json`, `minecraft_files.zip`, `version.json`, `latest.yml` |
-| `launcher/` | Распакованный установщик лаунчера (то, что отдаёт `downloadGame.exe`) |
-| `uploads/` | Временные файлы multer (удаляются после обработки) |
-
-В Docker эти каталоги монтируются как volumes (`docker-compose.yml`):
-
-```yaml
-volumes:
-  - ./data:/app/data
-  - ./game:/app/game
-  - ./launcher:/app/launcher
-```
-
----
-
-## Переменные окружения
-
-Скопируйте `.env.template` → `server_app/.env` (или корневой `.env`, если так настроен compose):
-
-| Переменная | Описание |
-|------------|----------|
-| `PORT` | Порт Node.js (по умолчанию `8080`) |
-| `SECRET_KEY` | Секрет для загрузки файлов (заголовок `x-secret-key`) |
-| `DOMAIN` | Домен для nginx / SSL |
-| `LETSENCRYPT_EMAIL` | Email для Let's Encrypt |
-
----
+| `game/` | Распакованная сборка |
+| `data/` | `manifest.json`, `minecraft_files.zip`, `version.json`, `latest.yml` |
+| `launcher/` | Файлы установщика лаунчера |
+| `uploads/` | Временные загрузки |
 
 ## Авторизация
 
-Эндпоинты **загрузки** требуют заголовок:
-
-```http
-x-secret-key: <значение SECRET_KEY из .env>
-```
-
-Сравнение ключа выполняется через `crypto.timingSafeEqual`. При неверном ключе:
-
-```json
-{ "error": "Unauthorized" }
-```
-
-Статус: `401`.
-
-Публичные (клиентские) эндпоинты ключ **не** требуют: `download`, `manifest`, `latest`, `latest.yml`, `downloadGame.exe`.
-
----
-
-## Что загружать: сборка Minecraft
-
-### Формат архива
-
-- Только **`.zip`**
-- Внутри — содержимое папки `.minecraft` (корневые папки/файлы сборки, **без** лишней обёртки вида `minecraft/...`, если только вы сами так не организуете клиент)
-
-Типичная структура внутри ZIP:
-
-```text
-mods/
-versions/
-libraries/
-assets/
-config/          # опционально
-options.txt      # опционально
-...
-```
-
-После `POST /upload` сервер:
-
-1. Проверяет `x-secret-key`
-2. Очищает `game/`
-3. Распаковывает ZIP в `game/`
-4. Строит `data/manifest.json` (SHA-1 + size каждого файла)
-5. Собирает `data/minecraft_files.zip` из всего содержимого `game/` (включая скрытые файлы)
-
-### Пример загрузки сборки
+Админские маршруты `v1` требуют `Authorization: Bearer <token>`.
 
 ```bash
-curl -X POST "https://example.com/minecraft/api/upload" \
-  -H "x-secret-key: YOUR_SECRET_KEY" \
-  -F "file=@./my_modpack.zip"
+curl -X POST http://localhost:8080/minecraft/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d "{\"username\":\"admin\",\"password\":\"change-me\"}"
 ```
 
-Успешный ответ (`200`):
+Ответ: `{ "token": "...", "expiresIn": "12h" }`. Логин и пароль берутся из `ADMIN_USERNAME` и `ADMIN_PASSWORD`, подпись — `JWT_SECRET`.
+
+`x-secret-key` больше не используется. Старые `POST /upload` и `POST /uploadGame` сняты.
+
+## Legacy
+
+Без токена, контракт прежний.
+
+### `GET /minecraft/api/manifest`
 
 ```json
-{
-  "message": "File uploaded and archive prepared successfully",
-  "archive": ".../data/minecraft_files.zip"
-}
+{ "files": { "mods/example.jar": { "sha1": "...", "size": 123 } } }
 ```
 
-Ошибки:
+### `GET /minecraft/api/download`
 
-| Код | Причина |
-|-----|---------|
-| `401` | Неверный или отсутствующий `x-secret-key` |
-| `400` | Нет файла или расширение не `.zip` |
-| `500` | Ошибка распаковки / манифеста / архивации |
+`data/minecraft_files.zip`. Если архив старше манифеста, он пересобирается перед отдачей.
 
-Поле формы обязательно называется **`file`**.
+### `GET /minecraft/api/latest`
 
----
+`{ "version": "1.6.5", "url": "https://jenison.ru/download" }`
 
-## Что загружать: обновление лаунчера
+### `GET /minecraft/api/latest.yml`
 
-Нужны два артефакта после `npm run pack` в `launcher_app`:
+Файл для electron-updater.
 
-1. **ZIP с установщиком** — внутри должен лежать готовый `.exe` / установщик (сервер кладёт содержимое в `launcher/` и при скачивании отдаёт **первый файл** из этой папки).
-2. **`latest.yml`** — метаданные для `electron-updater` (генерируется electron-builder).
+### `GET /minecraft/api/downloadGame.exe`
 
-### `POST /minecraft/api/uploadGame`
+Первый файл из `launcher/`.
 
-| Параметр | Где | Описание |
-|----------|-----|----------|
-| `x-secret-key` | header | Секрет |
-| `version` | header | Версия лаунчера, например `1.6.5` (пишется в `data/version.json`) |
-| `file` | multipart | ZIP с установщиком |
-| `yml` | multipart (текстовое поле) | Содержимое `latest.yml` |
+## v1, публично
 
-Пример:
+### `GET /minecraft/api/v1/manifest`
 
-```bash
-curl -X POST "https://example.com/minecraft/api/uploadGame" \
-  -H "x-secret-key: YOUR_SECRET_KEY" \
-  -H "version: 1.6.5" \
-  -F "file=@./launcher_release.zip" \
-  -F "yml=$(cat ./out/latest.yml)"
-```
+Тот же JSON, что и legacy-манифест.
 
-После успешной загрузки:
+### `GET /minecraft/api/v1/files/<путь>`
 
-- `launcher/` содержит распакованный установщик
-- `data/latest.yml` обновлён
-- `data/version.json` содержит `{ "version": "1.6.5" }`
+Один файл из `game/`. Путь как в манифесте, например `mods/example.jar`. Выход из каталога (`..`) отвечает `400`.
 
-Пример `latest.yml` (electron-builder):
+## v1, админ
 
-```yaml
-version: 1.6.5
-files:
-  - url: Jenison-Launcher-Setup-1.6.5.exe
-    sha512: ...
-    size: 12345678
-path: Jenison-Launcher-Setup-1.6.5.exe
-sha512: ...
-releaseDate: '2026-08-09T12:00:00.000Z'
-```
+### `GET /minecraft/api/v1/admin/files?q=&limit=&offset=`
 
-Имя файла в `url` / `path` должно соответствовать тому, что реально лежит в `launcher/` после распаковки ZIP.
+Страница списка: `{ total, limit, offset, files: [{ path, sha1, size }] }`.
 
----
+### `PUT /minecraft/api/v1/admin/files`
 
-## Эндпоинты
+Multipart: поле `file` и текстовое поле `path`. Путь должен заканчиваться на `.jar`. Файл пишется в `game/` рядом с остальными, в манифесте обновляется одна запись. Несколько модов отправляются отдельными запросами. Legacy-ZIP пересобирается при следующем `GET /download`, если он старше манифеста.
 
-Базовый префикс: `/minecraft/api`
+### `DELETE /minecraft/api/v1/admin/files`
 
-### `GET /`
+JSON `{ "path": "mods/example.jar" }`.
 
-Корневой ping приложения (без префикса API):
+### `GET /minecraft/api/v1/admin/mods/search?source=&q=&gameVersion=&loader=&offset=`
 
-```text
-Hello, from Jenison`s MC Launcher!
-```
+`source`: `modrinth` или `curseforge`. `loader`: `fabric`, `forge`, `neoforge`, `quilt`. Версия и загрузчик обязательны.
 
----
+Ответ: `{ total, hits: [{ id, title, description, iconUrl }] }`.
 
-### Сборка Minecraft
+Modrinth вызывается без ключа. CurseForge использует `CURSEFORGE_API_KEY` на сервере. Если ключ пустой, маршрут отвечает `503`.
 
-#### `POST /minecraft/api/upload`
+### `POST /minecraft/api/v1/admin/mods/install`
 
-Загрузить новую сборку (см. выше). Требует `x-secret-key`.
+JSON `{ "source", "projectId", "gameVersion", "loader" }`. Сервер скачивает последний релизный `.jar` под эти фильтры и сохраняет его как `mods/<имя файла>.jar`. Манифест обновляется сразу. Legacy-ZIP пересобирается при следующем `GET /download`. Зависимости мода не ставятся.
 
-#### `GET /minecraft/api/download`
+### `GET /minecraft/api/v1/admin/launcher`
 
-Скачать подготовленный архив `data/minecraft_files.zip`.
+`{ "version": "1.6.5", "yml": "..." }`
 
-- `Content-Type: application/zip`
-- `Content-Disposition: attachment; filename="minecraft_files.zip"`
+### `POST /minecraft/api/v1/admin/launcher`
 
-Если архива ещё нет:
-
-```json
-{ "error": "Archive not found. Upload game first." }
-```
-
-Статус: `404`.
-
-Используется лаунчером при рассинхроне файлов.
-
-#### `GET /minecraft/api/manifest`
-
-Вернуть манифест сборки.
-
-Формат:
-
-```json
-{
-  "files": {
-    "mods/example.jar": {
-      "sha1": "a1b2c3...",
-      "size": 12345
-    },
-    "versions/1.20.1/1.20.1.jar": {
-      "sha1": "d4e5f6...",
-      "size": 67890
-    }
-  }
-}
-```
-
-- Если есть `data/manifest.json` — отдаётся он.
-- Если файла нет — манифест генерируется на лету из `game/`.
-
-Лаунчер сравнивает локальный манифест с серверным: для каждого файла с сервера должны совпасть `sha1` и `size`.
-
----
-
-### Версии и обновления лаунчера
-
-#### `GET /minecraft/api/latest`
-
-Текущая версия клиента из `data/version.json`:
-
-```json
-{
-  "version": "1.6.5",
-  "url": "https://jenison.ru/download"
-}
-```
-
-Если `version.json` отсутствует — `500` с `{ "error": "No version data" }`.
-
-#### `GET /minecraft/api/latest.yml`
-
-Отдаёт файл `data/latest.yml` для `electron-updater`.
-
-#### `GET /minecraft/api/downloadGame.exe`
-
-Отдаёт **первый файл** из каталога `launcher/` как вложение (`application/x-msdownload`).
-
-Если каталог пуст — `404`.
-
-#### `POST /minecraft/api/uploadGame`
-
-Загрузить установщик + YML + версию (см. раздел выше). Требует `x-secret-key`.
-
----
-
-## Типовые сценарии
-
-### Обновить модпак на сервере
-
-1. Соберите рабочую папку `.minecraft` (моды, версии Fabric/Forge и т.д.).
-2. Упакуйте её в ZIP.
-3. Выполните `POST /upload` с `x-secret-key`.
-4. Убедитесь, что `GET /manifest` и `GET /download` отвечают успешно.
-5. У клиентов при следующем запуске игры файлы сами подтянутся при расхождении манифеста.
-
-### Выкатить новый лаунчер
-
-1. В `launcher_app` поднимите `version` в `package.json`.
-2. Соберите: `npm run pack` → артефакты в `launcher_app/out`.
-3. Упакуйте установщик в ZIP.
-4. Выполните `POST /uploadGame` с заголовком `version`, полем `file` и содержимым `latest.yml` в поле `yml`.
-5. Клиенты получат обновление через `electron-updater` (`latest.yml` + скачивание бинарника).
-
-### Первичная настройка сервера
-
-1. Заполните `.env` (`PORT`, `SECRET_KEY`, `DOMAIN`, …).
-2. Поднимите Docker (см. корневой `README.md` и `nginx/README.md`).
-3. Загрузите первую сборку Minecraft (`POST /upload`).
-4. Загрузите первую сборку лаунчера (`POST /uploadGame`).
-5. В лаунчере укажите `url` на ваш `/minecraft/api`.
-
----
-
-## Ограничения nginx
-
-В `nginx.conf` задано:
-
-```nginx
-client_max_body_size 5G;
-```
-
-Таймауты прокси для API увеличены (до ~1000s), чтобы большие ZIP успевали загрузиться и скачаться.
-
----
-
-## Краткая шпаргалка curl
-
-```bash
-# Загрузка сборки Minecraft
-curl -X POST "$API/upload" \
-  -H "x-secret-key: $SECRET_KEY" \
-  -F "file=@modpack.zip"
-
-# Манифест
-curl "$API/manifest"
-
-# Скачать сборку
-curl -OJ "$API/download"
-
-# Версия лаунчера
-curl "$API/latest"
-
-# latest.yml
-curl "$API/latest.yml"
-
-# Загрузка обновления лаунчера
-curl -X POST "$API/uploadGame" \
-  -H "x-secret-key: $SECRET_KEY" \
-  -H "version: 1.6.5" \
-  -F "file=@launcher.zip" \
-  -F "yml=<latest.yml"
-```
-
-где `API=https://example.com/minecraft/api`.
+Заголовок `version`, multipart-поле `file` (ZIP установщика) и текстовое поле `yml` (содержимое `latest.yml`).

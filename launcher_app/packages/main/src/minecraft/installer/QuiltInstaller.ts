@@ -3,7 +3,7 @@ import {
   installQuiltVersion,
   type QuiltLoaderArtifact,
 } from "@xmcl/installer";
-import { sendDownloadStatus } from "../../services/notifyService";
+import { sendPhase } from "../../services/notifyService";
 import {
   findVersionId,
   listInstalledVersionIds,
@@ -40,7 +40,7 @@ export default async function installQuiltLoader(options: {
 }): Promise<string> {
   const { mcVersion, mcDir, loaderVersion } = options;
 
-  sendDownloadStatus("Fetching Quilt version list...", 55, true);
+  sendPhase("Fetching Quilt version list...");
   const artifacts = await getQuiltLoaderVersionsByMinecraft({
     minecraftVersion: mcVersion,
   });
@@ -58,12 +58,12 @@ export default async function installQuiltLoader(options: {
   if (existingId) {
     const parsed = await tryParseVersion(mcDir, existingId);
     if (parsed) {
-      sendDownloadStatus(`Quilt already installed: ${existingId}`, 70, true);
+      sendPhase(`Quilt already installed: ${existingId}`);
       return existingId;
     }
   }
 
-  sendDownloadStatus(`Installing Quilt Loader ${loaderVer}...`, 60, true);
+  sendPhase(`Installing Quilt Loader ${loaderVer}...`);
 
   const versionId = await installQuiltVersion({
     minecraftVersion: mcVersion,
@@ -72,6 +72,6 @@ export default async function installQuiltLoader(options: {
     side: "client",
   });
 
-  sendDownloadStatus(`Quilt installed: ${versionId}`, 75, true);
+  sendPhase(`Quilt installed: ${versionId}`);
   return versionId;
 }

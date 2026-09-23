@@ -3,7 +3,7 @@ import {
   installForge,
   type ForgeVersion,
 } from "@xmcl/installer";
-import { sendDownloadStatus } from "../../services/notifyService";
+import { sendPhase } from "../../services/notifyService";
 import {
   findVersionId,
   listInstalledVersionIds,
@@ -48,7 +48,7 @@ export default async function installForgeLoader(options: {
 }): Promise<string> {
   const { mcVersion, mcDir, loaderVersion, javaPath } = options;
 
-  sendDownloadStatus("Fetching Forge version list...", 55, true);
+  sendPhase("Fetching Forge version list...");
   const list = await getForgeVersionList({ minecraft: mcVersion });
   const forgeMeta = pickForgeVersion(list.versions, loaderVersion);
 
@@ -71,16 +71,12 @@ export default async function installForgeLoader(options: {
   if (existingId) {
     const parsed = await tryParseVersion(mcDir, existingId);
     if (parsed) {
-      sendDownloadStatus(`Forge already installed: ${existingId}`, 70, true);
+      sendPhase(`Forge already installed: ${existingId}`);
       return existingId;
     }
   }
 
-  sendDownloadStatus(
-    `Installing Forge ${forgeMeta.version} for ${mcVersion}...`,
-    60,
-    true
-  );
+  sendPhase(`Installing Forge ${forgeMeta.version} for ${mcVersion}...`);
 
   const versionId = await installForge(
     {
@@ -92,6 +88,6 @@ export default async function installForgeLoader(options: {
     javaPath ? { java: javaPath, side: "client" } : { side: "client" }
   );
 
-  sendDownloadStatus(`Forge installed: ${versionId}`, 75, true);
+  sendPhase(`Forge installed: ${versionId}`);
   return versionId;
 }
