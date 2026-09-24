@@ -14,6 +14,7 @@ import {
 import { withFsLock } from "../../services/lock.js";
 import { CatalogError, installCatalogMod, searchCatalog } from "../../services/catalog.js";
 import { listReleaseIds, loaderCatalog, VersionListError } from "../../services/gameCatalog.js";
+import { listMods } from "../../services/modList.js";
 import { LOADERS, ProfileError, readProfile, saveProfile, type Loader } from "../../services/profile.js";
 
 function statusOf(error: unknown): number {
@@ -92,6 +93,14 @@ export function adminRouter(config: AppConfig): Router {
       const status = error instanceof VersionListError ? error.status : 502;
       res.status(status).json({ error: "Version list is unavailable" });
     }
+  });
+
+  router.get("/mods", async (req, res) => {
+    const q = typeof req.query.q === "string" ? req.query.q : "";
+    const limit = clampInt(req.query.limit, 50, 1, 200);
+    const offset = clampInt(req.query.offset, 0, 0, Number.MAX_SAFE_INTEGER);
+    const page = await listMods(config, q, limit, offset);
+    res.json(page);
   });
 
   router.get("/files", async (req, res) => {

@@ -18,7 +18,9 @@
   "dependencies": {
     "@xmcl/curseforge": "^2.2.2",
     "@xmcl/installer": "^6.1.2",
+    "@xmcl/mod-parser": "3.4.0",
     "@xmcl/modrinth": "^2.5.3",
+    "@xmcl/system": "2.2.8",
     "archiver": "^7.0.1",
     "crypto": "^1.0.1",
     "dotenv": "^17.2.1",
