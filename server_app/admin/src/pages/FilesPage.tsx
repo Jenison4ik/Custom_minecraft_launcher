@@ -10,6 +10,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ModsCatalogDialog } from "@/components/ModsCatalogDialog";
+import { PackProfileSection } from "@/components/PackProfileSection";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { api } from "@/lib/api";
 
@@ -131,6 +132,8 @@ export function FilesPage() {
           Загрузить моды
         </Button>
       </header>
+
+      <PackProfileSection />
 
       <section className="flex flex-col gap-4">
         <h2 className="text-base font-medium">Добавить .jar</h2>

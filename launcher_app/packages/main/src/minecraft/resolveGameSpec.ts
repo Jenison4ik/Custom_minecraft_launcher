@@ -1,25 +1,12 @@
-import launcherProperties from "../config/launcherProperties";
 import configService from "../services/configService";
+import type { GameProfile } from "./profileClient";
 import type { GameSpec } from "../types/LauncherConfig";
 
-function pickLoaderVersion(
-  fromUser: unknown,
-  fromProperties: string
-): string | undefined {
-  if (typeof fromUser === "string" && fromUser.trim()) {
-    return fromUser.trim();
-  }
-  if (fromProperties.trim()) {
-    return fromProperties.trim();
-  }
-  return undefined;
-}
-
 /**
- * Builds install/launch spec from launcherProperties (game) + user config (prefs).
- * `loaderVersion`: user config.json overrides properties when non-empty.
+ * Builds install/launch spec from the server profile and local player prefs.
+ * The server profile is the only source for the game version and loader.
  */
-export default function resolveGameSpec(): GameSpec {
+export default function resolveGameSpec(profile: GameProfile): GameSpec {
   const user = configService.getAll();
 
   const nickname =
@@ -33,12 +20,9 @@ export default function resolveGameSpec(): GameSpec {
   const disableDownload = user.disableDownload === true;
 
   return {
-    mcVersion: launcherProperties.mcVersion,
-    loader: launcherProperties.mcCore,
-    loaderVersion: pickLoaderVersion(
-      user.loaderVersion,
-      launcherProperties.loaderVersion
-    ),
+    mcVersion: profile.mcVersion,
+    loader: profile.loader,
+    loaderVersion: profile.loaderVersion.trim() || undefined,
     nickname,
     ram,
     disableDownload,

@@ -54,8 +54,10 @@ Main (Node)       ←  ipcMain.handle / webContents.send
 | `minecraft/installer/` | Установка version/libs/assets + Fabric |
 | `minecraft/launch/` | Запуск через `@xmcl/core` |
 | `minecraft/java/` | `ensureJava` |
-| `config/launcherProperties.ts` | URL API, **версия MC + загрузчик** (источник правды для игры) |
-| `minecraft/resolveGameSpec.ts` | properties + nickname/ram/disableDownload → GameSpec |
+| `config/launcherProperties.ts` | URL API |
+| `minecraft/profileClient.ts` | Профиль сборки с сервера и кэш в `userData/profile.json` |
+| `minecraft/resolveGameSpec.ts` | профиль сервера + nickname/ram/disableDownload → GameSpec |
+| `minecraft/syncMods.ts` | Папка `mods` строго по манифесту, если сервер доступен |
 | `utils/` | addServer, manifests, undiciAgent, legacy helpers |
 | `types/LauncherConfig.ts` | Тип игрового конфига |
 
@@ -107,10 +109,11 @@ Electron 31, React 18, Vite 5, TypeScript, CSS (`base.css` + `theme.css`), `@xmc
 
 ## Установка / запуск Minecraft
 
-Источник правды: `packages/main/src/config/launcherProperties.ts` (`mcVersion`, `mcCore`, опционально `loaderVersion`).
+Источник правды для версии: `GET /minecraft/api/v1/profile` на сервере (`data/profile.json`). В лаунчере кэш — `userData/profile.json`. `404` и отсутствие кэша останавливают запуск. Офлайн при живом кэше запускает уже установленную копию и не трогает `mods`.
 
-- `mcCore`: `vanilla` | `fabric` | `forge` | `quilt` | `neoforge`
-- Pipeline: `resolveGameSpec` → vanilla base → loader installer → `installDependencies` → `launch(versionId)`
+- `loader`: `vanilla` | `fabric` | `forge` | `quilt` | `neoforge`
+- `loaderVersion` в ответе сервера всегда конкретный, кроме vanilla
+- Pipeline: профиль → `resolveGameSpec` → vanilla base → loader installer → `installDependencies` → сверка `mods` → `launch(versionId)`
 - User `config.json` хранит только nickname / ram / `disableDownload`
 
 ## Правила для агента

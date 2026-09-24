@@ -1,15 +1,27 @@
 import { useState, type FormEvent } from "react";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import AnimatedTabs from "@/components/smoothui/animated-tabs";
-import Dialog from "@/components/smoothui/dialog";
-import Select from "@/components/smoothui/select";
-import Skeleton from "@/components/smoothui/skeleton-loader";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { api } from "@/lib/api";
 
@@ -98,28 +110,35 @@ export function ModsCatalogDialog({
   }
 
   return (
-    <Dialog
-      className="sm:max-w-3xl"
-      description="Последний релиз попадёт в mods."
-      open={open}
-      title="Загрузить моды"
-      onOpenChange={onOpenChange}
-    >
-      <div className="flex flex-col gap-4">
-        <AnimatedTabs
-          activeTab={source}
-          variant="segment"
-          tabs={[
-            { id: "modrinth", label: "Modrinth" },
-            { id: "curseforge", label: "CurseForge" },
-          ]}
-          onChange={(tabId) => {
-            setSource(tabId as Source);
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-h-[min(42rem,calc(100dvh-2rem))] w-full flex-col gap-4 overflow-hidden sm:max-w-3xl">
+        <DialogHeader className="pr-8">
+          <DialogTitle>Загрузить моды</DialogTitle>
+          <DialogDescription>Последний релиз попадёт в mods.</DialogDescription>
+        </DialogHeader>
+
+        <Tabs
+          value={source}
+          onValueChange={(value) => {
+            setSource(value as Source);
             setSubmitted(false);
           }}
-        />
-        <form className="grid grid-cols-1 items-end gap-4 md:grid-cols-12" onSubmit={onSearch}>
-          <div className="grid gap-2 md:col-span-3">
+        >
+          <TabsList className="grid h-9 w-full grid-cols-2">
+            <TabsTrigger className="w-full" value="modrinth">
+              Modrinth
+            </TabsTrigger>
+            <TabsTrigger className="w-full" value="curseforge">
+              CurseForge
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        <form
+          className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[minmax(0,7.5rem)_minmax(0,10rem)_minmax(0,1fr)_auto]"
+          onSubmit={onSearch}
+        >
+          <div className="grid gap-1.5">
             <Label htmlFor="mod-version">Версия</Label>
             <Input
               id="mod-version"
@@ -131,76 +150,105 @@ export function ModsCatalogDialog({
               }}
             />
           </div>
-          <div className="grid gap-2 md:col-span-3">
-            <Label id="mod-loader-label">Загрузчик</Label>
+          <div className="grid min-w-0 gap-1.5">
+            <Label htmlFor="mod-loader">Загрузчик</Label>
             <Select
-              aria-labelledby="mod-loader-label"
-              options={loaders}
-              placeholder="Выберите"
-              value={loader}
+              value={loader || undefined}
               onValueChange={(value) => {
                 setLoader(value as Loader);
                 setSubmitted(false);
               }}
-            />
+            >
+              <SelectTrigger id="mod-loader" className="w-full">
+                <SelectValue placeholder="Выберите" />
+              </SelectTrigger>
+              <SelectContent position="popper" align="start">
+                {loaders.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <div className="grid gap-2 md:col-span-4">
+          <div className="grid min-w-0 gap-1.5">
             <Label htmlFor="mod-query">Поиск</Label>
-            <Input id="mod-query" value={q} onChange={(event) => setQ(event.target.value)} />
+            <Input id="mod-query" value={q} placeholder="sodium" onChange={(event) => setQ(event.target.value)} />
           </div>
-          <Button className="md:col-span-2" type="submit" variant="outline">
-            Найти
-          </Button>
+          <Button type="submit">Найти</Button>
         </form>
-        <div ref={setScrollRoot} className="max-h-[min(24rem,50dvh)] overflow-y-auto">
-          {catalog.isPending && submitted ? (
-            <div className="grid gap-3">
-              {Array.from({ length: 4 }, (_, index) => (
-                <Skeleton key={index} className="h-14 w-full" />
-              ))}
+
+        <div
+          ref={setScrollRoot}
+          className="h-[min(22rem,calc(100dvh-16rem))] overflow-y-auto rounded-lg border border-border"
+        >
+            {!submitted ? (
+              <Empty className="h-full border-0">
+                <EmptyHeader>
+                  <EmptyTitle>Найдите мод</EmptyTitle>
+                  <EmptyDescription>Укажите версию, загрузчик и запрос.</EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            ) : null}
+            {catalog.isPending && submitted ? (
+              <div className="grid gap-px p-2">
+                {Array.from({ length: 4 }, (_, index) => (
+                  <Skeleton key={index} className="h-16 w-full" />
+                ))}
+              </div>
+            ) : null}
+            {catalog.isError ? (
+              <div className="p-3">
+                <Alert variant="destructive">
+                  <AlertDescription>{catalog.error.message}</AlertDescription>
+                </Alert>
+              </div>
+            ) : null}
+            {catalog.isSuccess && hits.length === 0 ? (
+              <Empty className="border-0">
+                <EmptyHeader>
+                  <EmptyTitle>Ничего не найдено</EmptyTitle>
+                  <EmptyDescription>Смените версию, загрузчик или запрос.</EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            ) : null}
+            {hits.length > 0 ? (
+              <ul>
+                {hits.map((hit) => {
+                  const pending = install.isPending && install.variables === hit.id;
+                  return (
+                    <li
+                      key={`${source}-${hit.id}`}
+                      className="flex items-center gap-3 border-b border-border px-3 py-3 last:border-b-0"
+                    >
+                      {hit.iconUrl ? (
+                        <img src={hit.iconUrl} alt="" className="size-10 shrink-0 rounded-md object-cover" />
+                      ) : (
+                        <div className="size-10 shrink-0 rounded-md bg-muted" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{hit.title}</p>
+                        <p className="truncate text-xs text-muted-foreground">{hit.description}</p>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="shrink-0"
+                        disabled={pending}
+                        onClick={() => install.mutate(hit.id)}
+                      >
+                        {pending ? "Добавление" : "Добавить"}
+                      </Button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
+            <div ref={sentinel} className="h-6">
+              {catalog.isFetchingNextPage ? <Skeleton className="mx-3 h-14" /> : null}
             </div>
-          ) : null}
-          {catalog.isError ? (
-            <Alert variant="destructive">
-              <AlertDescription>{catalog.error.message}</AlertDescription>
-            </Alert>
-          ) : null}
-          {catalog.isSuccess && hits.length === 0 ? (
-            <Empty>
-              <EmptyHeader>
-                <EmptyTitle>Ничего не найдено</EmptyTitle>
-                <EmptyDescription>Смените версию, загрузчик или запрос.</EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          ) : null}
-          {hits.length > 0 ? (
-            <ul className="grid gap-2">
-              {hits.map((hit) => {
-                const pending = install.isPending && install.variables === hit.id;
-                return (
-                  <li key={`${source}-${hit.id}`} className="flex items-center gap-3 rounded-lg px-2 py-2">
-                    {hit.iconUrl ? (
-                      <img src={hit.iconUrl} alt="" className="size-10 shrink-0 rounded-md object-cover" />
-                    ) : (
-                      <div className="size-10 shrink-0 rounded-md bg-muted" />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{hit.title}</p>
-                      <p className="truncate text-xs text-muted-foreground">{hit.description}</p>
-                    </div>
-                    <Button type="button" size="sm" disabled={pending} onClick={() => install.mutate(hit.id)}>
-                      {pending ? "Добавление" : "Добавить"}
-                    </Button>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : null}
-          <div ref={sentinel} className="h-6">
-            {catalog.isFetchingNextPage ? <Skeleton className="h-14 w-full" /> : null}
-          </div>
         </div>
-      </div>
+      </DialogContent>
     </Dialog>
   );
 }

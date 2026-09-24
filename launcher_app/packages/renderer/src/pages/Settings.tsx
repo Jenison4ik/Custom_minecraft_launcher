@@ -111,7 +111,7 @@ export default function Settings({
       <section className="launcher-settings-section launcher-settings-pack">
         <h2 className="launcher-subtitle">Сборка</h2>
         <p className="launcher-settings-line">
-          Minecraft {info?.mcVersion ?? "…"}
+          Minecraft {info?.mcVersion || "не задана"}
           {info ? `, ${info.loader}` : ""}
           {info?.loaderVersion ? ` ${info.loaderVersion}` : ""}
         </p>

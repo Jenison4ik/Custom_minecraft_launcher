@@ -1,9 +1,10 @@
 import mcInstall from "../minecraft/installer";
-import resolveGameSpec from "../minecraft/resolveGameSpec";
+import { loadLaunchContext } from "../minecraft/loadLaunchContext";
 
 export default async function restoreMinecraft() {
+  const context = await loadLaunchContext();
   await mcInstall({
-    ...resolveGameSpec(),
+    ...context.spec,
     disableDownload: false,
   });
 }

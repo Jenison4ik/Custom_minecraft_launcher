@@ -3,7 +3,7 @@ import { CHANNELS } from "@jenison/shared";
 import type { ConfigEntry, LauncherInfo } from "@jenison/shared";
 import os from "os";
 import configService from "../../services/configService";
-import launcherProperties from "../../config/launcherProperties";
+import { loadProfile, ProfileMissingError, readCachedProfile } from "../../minecraft/profileClient";
 
 const totalmem = Math.floor(os.totalmem() / 1048576);
 
@@ -30,14 +30,35 @@ export function registerConfigHandlers(): void {
     }
   );
 
-  ipcMain.handle(CHANNELS.getLauncherInfo, (): LauncherInfo => {
-    return {
+  ipcMain.handle(CHANNELS.getLauncherInfo, async (): Promise<LauncherInfo> => {
+    const empty: LauncherInfo = {
       appVersion: app.getVersion(),
-      mcVersion: launcherProperties.mcVersion,
-      loader: launcherProperties.mcCore,
-      loaderVersion: launcherProperties.loaderVersion,
-      servers: launcherProperties.servers,
+      mcVersion: "",
+      loader: "",
+      loaderVersion: "",
+      servers: [],
     };
+    try {
+      const loaded = await loadProfile(true);
+      return {
+        appVersion: app.getVersion(),
+        mcVersion: loaded.profile.mcVersion,
+        loader: loaded.profile.loader,
+        loaderVersion: loaded.profile.loaderVersion,
+        servers: loaded.profile.servers,
+      };
+    } catch (error) {
+      if (error instanceof ProfileMissingError) return empty;
+      const cached = readCachedProfile();
+      if (!cached) return empty;
+      return {
+        appVersion: app.getVersion(),
+        mcVersion: cached.mcVersion,
+        loader: cached.loader,
+        loaderVersion: cached.loaderVersion,
+        servers: cached.servers,
+      };
+    }
   });
 
   ipcMain.handle(CHANNELS.pickJavaPath, async (): Promise<string | null> => {
