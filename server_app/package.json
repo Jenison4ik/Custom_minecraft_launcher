@@ -17,6 +17,7 @@
   "license": "MIT",
   "dependencies": {
     "@xmcl/curseforge": "^2.2.2",
+    "@xmcl/installer": "^6.1.2",
     "@xmcl/modrinth": "^2.5.3",
     "archiver": "^7.0.1",
     "crypto": "^1.0.1",

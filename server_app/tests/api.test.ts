@@ -20,6 +20,15 @@ vi.mock("@xmcl/modrinth", () => ({
   },
 }));
 
+const installer = vi.hoisted(() => ({
+  getVersionList: vi.fn(),
+  getLoaderArtifactListFor: vi.fn(),
+  getForgeVersionList: vi.fn(),
+  getQuiltLoaderVersionsByMinecraft: vi.fn(),
+}));
+
+vi.mock("@xmcl/installer", () => installer);
+
 vi.mock("@xmcl/curseforge", () => ({
   FileModLoaderType: { Any: 0, Forge: 1, Fabric: 4, Quilt: 5, NeoForge: 6 },
   FileReleaseType: { Release: 1, Beta: 2, Alpha: 3 },
@@ -33,6 +42,8 @@ vi.mock("@xmcl/curseforge", () => ({
 
 import { createApp } from "../src/app.js";
 import type { AppConfig } from "../src/config.js";
+import { resetVersionCache } from "../src/services/gameCatalog.js";
+import { profilePath } from "../src/services/profile.js";
 
 describe("api", () => {
   let app: Express;
@@ -68,6 +79,27 @@ describe("api", () => {
     xmcl.searchMods.mockReset();
     xmcl.getModFiles.mockReset();
     config.curseforgeApiKey = "";
+    resetVersionCache();
+    installer.getVersionList.mockReset();
+    installer.getLoaderArtifactListFor.mockReset();
+    installer.getForgeVersionList.mockReset();
+    installer.getQuiltLoaderVersionsByMinecraft.mockReset();
+    installer.getVersionList.mockResolvedValue({
+      versions: [
+        { id: "1.21.1", type: "release" },
+        { id: "24w14a", type: "snapshot" },
+      ],
+    });
+    installer.getLoaderArtifactListFor.mockResolvedValue([
+      { loader: { version: "0.16.14", stable: true } },
+      { loader: { version: "0.16.0", stable: false } },
+    ]);
+    installer.getForgeVersionList.mockResolvedValue({
+      versions: [{ version: "51.0.33", type: "recommended" }],
+    });
+    installer.getQuiltLoaderVersionsByMinecraft.mockResolvedValue([
+      { loader: { version: "0.26.1", stable: true } },
+    ]);
   });
 
   async function token(): Promise<string> {
@@ -251,6 +283,87 @@ describe("api", () => {
       .set("Authorization", `Bearer ${auth}`)
       .send({ source: "modrinth", projectId: "AA123", gameVersion: "1.20.1", loader: "fabric" });
     expect(installed.status).toBe(404);
+  });
+
+  it("does not invent a profile when the file is missing", async () => {
+    const response = await request(app).get("/minecraft/api/v1/profile");
+    expect(response.status).toBe(404);
+    expect(response.body.error).toBe("Profile is not set");
+    await expect(fs.access(profilePath(config.dataDir))).rejects.toMatchObject({ code: "ENOENT" });
+
+    const auth = await token();
+    const admin = await request(app)
+      .get("/minecraft/api/v1/admin/profile")
+      .set("Authorization", `Bearer ${auth}`);
+    expect(admin.status).toBe(404);
+  });
+
+  it("stores the recommended loader version and serves that exact profile", async () => {
+    const auth = await token();
+    const saved = await request(app)
+      .put("/minecraft/api/v1/admin/profile")
+      .set("Authorization", `Bearer ${auth}`)
+      .send({
+        mcVersion: "1.21.1",
+        loader: "fabric",
+        loaderVersion: "",
+        servers: [{ ip: "jenison.ru", lable: "Chikadrilo Online" }],
+      });
+    expect(saved.status).toBe(200);
+    expect(saved.body).toEqual({
+      mcVersion: "1.21.1",
+      loader: "fabric",
+      loaderVersion: "0.16.14",
+      servers: [{ ip: "jenison.ru", lable: "Chikadrilo Online" }],
+    });
+
+    const pub = await request(app).get("/minecraft/api/v1/profile");
+    expect(pub.body.loaderVersion).toBe("0.16.14");
+
+    const versions = await request(app)
+      .get("/minecraft/api/v1/admin/game/versions")
+      .set("Authorization", `Bearer ${auth}`);
+    expect(versions.body.versions).toEqual(["1.21.1"]);
+
+    const loaders = await request(app)
+      .get("/minecraft/api/v1/admin/game/loaders")
+      .query({ mcVersion: "1.21.1", loader: "fabric" })
+      .set("Authorization", `Bearer ${auth}`);
+    expect(loaders.body.recommended).toBe("0.16.14");
+    expect(loaders.body.versions).toEqual(["0.16.14", "0.16.0"]);
+  });
+
+  it("rejects an unknown version and does not replace a saved profile when lists fail", async () => {
+    const auth = await token();
+    const unknown = await request(app)
+      .put("/minecraft/api/v1/admin/profile")
+      .set("Authorization", `Bearer ${auth}`)
+      .send({ mcVersion: "1.16.4", loader: "fabric", loaderVersion: "", servers: [] });
+    expect(unknown.status).toBe(400);
+
+    const badLoader = await request(app)
+      .put("/minecraft/api/v1/admin/profile")
+      .set("Authorization", `Bearer ${auth}`)
+      .send({ mcVersion: "1.21.1", loader: "fabric", loaderVersion: "9.9.9", servers: [] });
+    expect(badLoader.status).toBe(400);
+
+    const vanilla = await request(app)
+      .put("/minecraft/api/v1/admin/profile")
+      .set("Authorization", `Bearer ${auth}`)
+      .send({ mcVersion: "1.21.1", loader: "vanilla", loaderVersion: "ignored", servers: [] });
+    expect(vanilla.status).toBe(200);
+    expect(vanilla.body.loaderVersion).toBe("");
+
+    installer.getVersionList.mockRejectedValue(new Error("offline"));
+    resetVersionCache();
+    const failed = await request(app)
+      .put("/minecraft/api/v1/admin/profile")
+      .set("Authorization", `Bearer ${auth}`)
+      .send({ mcVersion: "1.21.1", loader: "fabric", loaderVersion: "", servers: [] });
+    expect(failed.status).toBe(502);
+
+    const still = await request(app).get("/minecraft/api/v1/profile");
+    expect(still.body.loader).toBe("vanilla");
   });
 });
 

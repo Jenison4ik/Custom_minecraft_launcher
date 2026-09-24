@@ -82,6 +82,21 @@ curl -X POST http://localhost:8080/minecraft/api/v1/auth/login \
 
 ## v1, публично
 
+### `GET /minecraft/api/v1/profile`
+
+Профиль сборки из `data/profile.json`. Без файла сервер отвечает `404` и ничего не создаёт.
+
+```json
+{
+  "mcVersion": "1.21.1",
+  "loader": "fabric",
+  "loaderVersion": "0.16.14",
+  "servers": [{ "ip": "jenison.ru", "lable": "Chikadrilo Online" }]
+}
+```
+
+`loader`: `vanilla`, `fabric`, `forge`, `quilt`, `neoforge`. У `vanilla` поле `loaderVersion` пустое. У остальных это уже зафиксированный номер, а не «последняя на момент запуска».
+
 ### `GET /minecraft/api/v1/manifest`
 
 Тот же JSON, что и legacy-манифест.
@@ -91,6 +106,22 @@ curl -X POST http://localhost:8080/minecraft/api/v1/auth/login \
 Один файл из `game/`. Путь как в манифесте, например `mods/example.jar`. Выход из каталога (`..`) отвечает `400`.
 
 ## v1, админ
+
+### `GET /minecraft/api/v1/admin/profile`
+
+Тот же JSON, что у публичного профиля. `404`, если файл ещё не сохранён.
+
+### `PUT /minecraft/api/v1/admin/profile`
+
+JSON того же вида. Пустой `loaderVersion` значит «рекомендуемая»: сервер записывает конкретный номер из списка загрузчика. Если список версий недоступен, файл не меняется и ответ `502`. Неизвестная версия Minecraft или загрузчика — `400`. Для `vanilla` сохраняется пустая версия загрузчика. Файлы в `game/` этот запрос не трогает.
+
+### `GET /minecraft/api/v1/admin/game/versions`
+
+`{ "versions": ["1.21.1"] }` — только релизы Mojang.
+
+### `GET /minecraft/api/v1/admin/game/loaders?mcVersion=&loader=`
+
+`{ "versions": ["0.16.14"], "recommended": "0.16.14" }`. Для `vanilla` оба поля пустые. Списки кэшируются в памяти сервера около 10 минут.
 
 ### `GET /minecraft/api/v1/admin/files?q=&limit=&offset=`
 

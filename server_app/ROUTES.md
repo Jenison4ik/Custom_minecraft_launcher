@@ -45,6 +45,26 @@ JSON-тело запросов ограничено `2mb`. Загрузки ид
 
 Префикс: `/minecraft/api/v1`. Токен не нужен.
 
+### `GET /minecraft/api/v1/profile`
+
+Профиль сборки из `data/profile.json`.
+
+Ответ `200`:
+
+```json
+{
+  "mcVersion": "1.21.1",
+  "loader": "fabric",
+  "loaderVersion": "0.16.14",
+  "servers": [{ "ip": "jenison.ru", "lable": "Chikadrilo Online" }]
+}
+```
+
+| Статус | Когда |
+|--------|--------|
+| `404` | Файла нет. `{ "error": "Profile is not set" }`. Файл не создаётся. |
+| `500` | Файл есть, но он повреждён. `{ "error": "Profile is invalid" }` |
+
 ### `GET /minecraft/api/v1/manifest`
 
 Манифест сборки из `data/manifest.json`. Если файла нет, он собирается по каталогу `game/`.
@@ -75,6 +95,28 @@ JSON-тело запросов ограничено `2mb`. Загрузки ид
 ## Админское API v1
 
 Префикс: `/minecraft/api/v1/admin`. На все маршруты ниже нужен Bearer-токен.
+
+### `GET /minecraft/api/v1/admin/profile`
+
+Как публичный `GET /profile`: `200` или `404`.
+
+### `PUT /minecraft/api/v1/admin/profile`
+
+Тело — профиль. Пустой `loaderVersion` сервер заменяет на рекомендуемый номер и сохраняет его. `vanilla` сохраняется с пустым `loaderVersion`.
+
+| Статус | Когда |
+|--------|--------|
+| `200` | Сохранённый профиль с конкретным `loaderVersion` |
+| `400` | Неизвестный `mcVersion`, загрузчик или номер загрузчика. `{ "error": "Invalid profile" }` или `{ "error": "Unknown Minecraft version" }` / `{ "error": "Unknown loader version" }` |
+| `502` | Список версий недоступен, файл не меняется. `{ "error": "Version list is unavailable" }` |
+
+### `GET /minecraft/api/v1/admin/game/versions`
+
+`{ "versions": ["1.21.1"] }`, только `release`. `502`, если манифест Mojang недоступен.
+
+### `GET /minecraft/api/v1/admin/game/loaders?mcVersion=&loader=`
+
+`{ "versions": ["0.16.14", "0.16.0"], "recommended": "0.16.14" }`. `loader=vanilla` отвечает `{ "versions": [], "recommended": "" }`. `400`, если версия или загрузчик не переданы. `502`, если список загрузчика недоступен.
 
 ### `GET /minecraft/api/v1/admin/files`
 

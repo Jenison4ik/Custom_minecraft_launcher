@@ -1,4 +1,5 @@
 import { app } from "electron";
+import fs from "fs/promises";
 import path from "path";
 import { DEFAULT_EXTRA_JVM_ARGS, Version, launch } from "@xmcl/core";
 import { ChildProcess } from "child_process";
@@ -14,7 +15,9 @@ import {
 } from "../../services/notifyService";
 import Status from "../../services/statusService";
 import mcInstall from "../installer";
-import resolveGameSpec from "../resolveGameSpec";
+import { loadLaunchContext } from "../loadLaunchContext";
+import { syncModFiles } from "../syncMods";
+import addServer from "../../utils/addServer";
 import {
   findVersionId,
   listInstalledVersionIds,
@@ -108,17 +111,27 @@ async function findExistingLaunchId(
 }
 
 export default async function mcLaunch(spec?: GameSpec) {
-  const gameSpec = spec ?? resolveGameSpec();
   sendLaunchStatus(true);
   Status.setStatus(true);
 
   try {
+    const provided = spec !== undefined;
+    const context = provided
+      ? { spec, online: !spec.disableDownload, servers: [] }
+      : await loadLaunchContext();
+    const gameSpec = context.spec;
     const BASE_DIR = path.join(app.getPath("userData"), mcPath);
+    await fs.mkdir(BASE_DIR, { recursive: true });
+    if (!provided) {
+      await addServer(context.servers);
+    }
     let versionId: string;
+    const skipNetwork = !context.online || gameSpec.disableDownload;
 
-    if (!gameSpec.disableDownload) {
+    if (!skipNetwork) {
       try {
         versionId = await mcInstall(gameSpec);
+        await syncModFiles(BASE_DIR);
       } catch (installError) {
         const errorMessage =
           installError instanceof Error
@@ -130,7 +143,9 @@ export default async function mcLaunch(spec?: GameSpec) {
       const existing = await findExistingLaunchId(BASE_DIR, gameSpec);
       if (!existing) {
         throw new Error(
-          "Game is not installed and file checks are disabled (disableDownload)."
+          gameSpec.disableDownload
+            ? "Game is not installed and file checks are disabled (disableDownload)."
+            : "Сборка не установлена, а сервер недоступен"
         );
       }
       versionId = existing;

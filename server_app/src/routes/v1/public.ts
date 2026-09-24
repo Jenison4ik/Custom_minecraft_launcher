@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import { Router } from "express";
 import type { AppConfig } from "../../config.js";
 import { ensureManifest } from "../../services/manifest.js";
+import { ProfileError, readProfile } from "../../services/profile.js";
 import { resolveInside, SafePathError } from "../../services/safePath.js";
 
 function fileParam(value: string | string[] | undefined): string {
@@ -11,6 +12,21 @@ function fileParam(value: string | string[] | undefined): string {
 
 export function publicRouter(config: AppConfig): Router {
   const router = Router();
+
+  router.get("/profile", async (_req, res) => {
+    try {
+      const profile = await readProfile(config.dataDir);
+      if (!profile) {
+        res.status(404).json({ error: "Profile is not set" });
+        return;
+      }
+      res.json(profile);
+    } catch (error) {
+      console.error(error);
+      const status = error instanceof ProfileError ? error.status : 500;
+      res.status(status).json({ error: error instanceof ProfileError ? error.message : "Profile is invalid" });
+    }
+  });
 
   router.get("/manifest", async (_req, res) => {
     try {

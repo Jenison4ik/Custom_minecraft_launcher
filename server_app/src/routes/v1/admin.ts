@@ -13,6 +13,8 @@ import {
 } from "../../services/gameFiles.js";
 import { withFsLock } from "../../services/lock.js";
 import { CatalogError, installCatalogMod, searchCatalog } from "../../services/catalog.js";
+import { listReleaseIds, loaderCatalog, VersionListError } from "../../services/gameCatalog.js";
+import { LOADERS, ProfileError, readProfile, saveProfile, type Loader } from "../../services/profile.js";
 
 function statusOf(error: unknown): number {
   if (typeof error === "object" && error !== null && "status" in error) {
@@ -32,6 +34,65 @@ export function adminRouter(config: AppConfig): Router {
   const router = Router();
   const upload = multer({ dest: config.uploadsDir });
   router.use(requireAuth(config));
+
+  router.get("/profile", async (_req, res) => {
+    try {
+      const profile = await readProfile(config.dataDir);
+      if (!profile) {
+        res.status(404).json({ error: "Profile is not set" });
+        return;
+      }
+      res.json(profile);
+    } catch (error) {
+      console.error(error);
+      const status = error instanceof ProfileError ? error.status : 500;
+      res.status(status).json({ error: error instanceof ProfileError ? error.message : "Profile is invalid" });
+    }
+  });
+
+  router.put("/profile", async (req, res) => {
+    try {
+      const profile = await saveProfile(config.dataDir, req.body);
+      res.json(profile);
+    } catch (error) {
+      if (error instanceof ProfileError || error instanceof VersionListError) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      console.error(error);
+      res.status(500).json({ error: "Error saving profile" });
+    }
+  });
+
+  router.get("/game/versions", async (_req, res) => {
+    try {
+      const versions = await listReleaseIds();
+      res.json({ versions });
+    } catch (error) {
+      const status = error instanceof VersionListError ? error.status : 502;
+      res.status(status).json({ error: "Version list is unavailable" });
+    }
+  });
+
+  router.get("/game/loaders", async (req, res) => {
+    const mcVersion = typeof req.query.mcVersion === "string" ? req.query.mcVersion.trim() : "";
+    const loader = typeof req.query.loader === "string" ? req.query.loader.trim() : "";
+    if (!mcVersion || !(LOADERS as readonly string[]).includes(loader)) {
+      res.status(400).json({ error: "Invalid profile" });
+      return;
+    }
+    if (loader === "vanilla") {
+      res.json({ versions: [], recommended: "" });
+      return;
+    }
+    try {
+      const catalog = await loaderCatalog(mcVersion, loader as Exclude<Loader, "vanilla">);
+      res.json(catalog);
+    } catch (error) {
+      const status = error instanceof VersionListError ? error.status : 502;
+      res.status(status).json({ error: "Version list is unavailable" });
+    }
+  });
 
   router.get("/files", async (req, res) => {
     const q = typeof req.query.q === "string" ? req.query.q : "";
