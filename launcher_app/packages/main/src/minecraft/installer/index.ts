@@ -1,188 +1,161 @@
 import {
+  DownloadTask,
   getVersionList,
+  installResolvedAssetsTask,
+  installResolvedLibrariesTask,
   installVersionTask,
-  installLibrariesTask,
-  installAssetsTask,
-  installDependenciesTask,
 } from "@xmcl/installer";
-import { MinecraftLocation, ResolvedVersion, Version } from "@xmcl/core";
+import {
+  MinecraftFolder,
+  Version,
+  diagnoseAssetIndex,
+  type MinecraftLocation,
+  type ResolvedVersion,
+} from "@xmcl/core";
 import type { JavaVersion } from "@xmcl/core";
-import { Task } from "@xmcl/task";
+import type { Dispatcher } from "undici";
 import { app } from "electron";
 import path from "path";
-import fs from "fs";
+import fs from "fs/promises";
 import { setMaxListeners } from "events";
 
 import { mcPath } from "../../services/paths";
-import {
-  byteProgress,
-  sendError,
-  sendPhase,
-} from "../../services/notifyService";
-import { setupUndiciAgent } from "../../utils/undiciAgent";
+import { sendError, sendPhase } from "../../services/notifyService";
+import { fetchWithRetry, getDownloadDispatcher } from "../../utils/undiciAgent";
 import { resolveLaunchJava } from "../java";
 import type { GameSpec } from "../../types/LauncherConfig";
 
-import checkVersionFiles from "./checkVersion";
-import checkLibraryFiles from "./checkLibraries";
-import checkAssetFiles from "./checkAssets";
-import {
-  InstallationError,
-  isChecksumNotMatchError,
-  isNetworkTimeoutError,
-  isErrorWithMessage,
-  isFileError,
-} from "./types";
 import installForgeLoader from "./ForgeInstaller";
 import installFabricLoader from "./FabricInstaller";
 import installQuiltLoader from "./QuiltInstaller";
 import installNeoForgeLoader from "./NeoForgeInstaller";
+import {
+  diagnoseInstall,
+  isVanillaReady,
+  missingAssets,
+  missingLibraries,
+} from "./diagnoseInstall";
+import { summarizeInstallError, withRetry } from "./installError";
+import { trackTask } from "./trackTask";
 
-const DOWNLOAD_CONCURRENCY = 1;
+const VERSION_MANIFESTS = [
+  "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json",
+  "https://launchermeta.mojang.com/mc/game/version_manifest.json",
+];
 
 const DEFAULT_JAVA: JavaVersion = {
   majorVersion: 8,
   component: "jre-legacy",
 };
 
-function deleteCorruptedFile(error: InstallationError) {
-  if (isFileError(error) && error.file && fs.existsSync(error.file)) {
-    try {
-      fs.unlinkSync(error.file);
-      console.warn("Deleted corrupted file:", error.file);
-    } catch {
-      /* ignore */
-    }
-  }
-}
-
-function formatError(error: InstallationError): string {
-  if (isNetworkTimeoutError(error)) {
-    return "Connection timed out. Check your internet or proxy.";
-  }
-  if (isChecksumNotMatchError(error)) {
-    return "Corrupted file. It will be re-downloaded.";
-  }
-  return isErrorWithMessage(error) ? error.message : String(error);
-}
-
-async function runTaskWithRetry<T>(
-  createTask: () => Task<T>,
-  title: string,
-  retries = 7
-): Promise<T> {
+async function fetchVersionMeta(mcVersion: string) {
   let lastError: unknown;
-
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    const task = createTask();
-    const interval = setInterval(() => {
-      byteProgress(title, task.progress, task.total);
-    }, 200);
-
+  for (const remote of VERSION_MANIFESTS) {
     try {
-      const result = await task.startAndWait();
-      clearInterval(interval);
-      byteProgress(title, task.progress, task.total);
-      return result;
-    } catch (e) {
-      clearInterval(interval);
-      lastError = e;
-      console.warn(`Retry ${attempt}/${retries}`, e);
-
-      if (isChecksumNotMatchError(e as InstallationError)) {
-        deleteCorruptedFile(e as InstallationError);
+      const list = await getVersionList({ fetch: fetchWithRetry, remote });
+      const found = list.versions.find((version) => version.id === mcVersion);
+      if (!found) {
+        throw new Error(`Версия Minecraft ${mcVersion} не найдена`);
       }
-
-      if (attempt < retries) {
-        await new Promise((r) => setTimeout(r, 1500));
+      return found;
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message.startsWith("Версия Minecraft")
+      ) {
+        throw error;
       }
+      lastError = error;
     }
   }
-
-  throw lastError;
+  throw lastError instanceof Error
+    ? lastError
+    : new Error(`Не удалось получить список версий Minecraft`);
 }
 
-async function ensureVanillaBase(
+async function ensureVanillaVersion(
   mcDir: MinecraftLocation,
-  mcVersion: string
-): Promise<ResolvedVersion> {
-  let resolvedVersion: ResolvedVersion | null = null;
-  let needVersion = true;
-  let needAssets = true;
-  let needLibraries = true;
+  mcVersion: string,
+  dispatcher: Dispatcher
+): Promise<void> {
+  if (await isVanillaReady(mcDir, mcVersion)) return;
 
-  try {
-    sendPhase("Checking Minecraft version...");
-    resolvedVersion = await checkVersionFiles(mcDir, mcVersion);
-    needVersion = false;
-
-    try {
-      sendPhase("Checking assets...");
-      await checkAssetFiles(mcDir, resolvedVersion);
-      needAssets = false;
-    } catch {
-      /* need assets */
-    }
-
-    try {
-      sendPhase("Checking libraries...");
-      await checkLibraryFiles(mcDir, resolvedVersion);
-      needLibraries = false;
-    } catch {
-      /* need libraries */
-    }
-
-    if (!needAssets && !needLibraries && resolvedVersion) {
-      return resolvedVersion;
-    }
-  } catch {
-    /* version missing */
-  }
-
-  const versions = (await getVersionList()).versions.filter(
-    (v) => v.id === mcVersion
-  );
-
-  if (!versions.length) {
-    throw new Error(`Minecraft version ${mcVersion} not found`);
-  }
-
-  const versionMeta = versions[0];
-
-  if (needVersion) {
-    sendPhase("Downloading Minecraft version");
-    resolvedVersion = await runTaskWithRetry(
-      () => installVersionTask(versionMeta, mcDir),
-      "Downloading Minecraft version"
+  const meta = await fetchVersionMeta(mcVersion);
+  const title = `Загрузка клиента ${mcVersion}`;
+  sendPhase(title);
+  await withRetry(async () => {
+    if (await isVanillaReady(mcDir, mcVersion)) return;
+    await trackTask(
+      installVersionTask(meta, mcDir, { dispatcher }),
+      title
     );
-  } else {
-    resolvedVersion = await Version.parse(mcDir, mcVersion);
-  }
+  });
+}
 
-  if (needAssets && resolvedVersion) {
-    resolvedVersion = await Version.parse(mcDir, resolvedVersion.id);
-    sendPhase("Downloading assets");
-    await runTaskWithRetry(
-      () =>
-        installAssetsTask(resolvedVersion!, {
-          assetsDownloadConcurrency: DOWNLOAD_CONCURRENCY,
-        }),
-      "Downloading assets"
+async function ensureAssetIndex(
+  mcDir: MinecraftLocation,
+  resolved: ResolvedVersion,
+  dispatcher: Dispatcher
+): Promise<void> {
+  const folder = MinecraftFolder.from(mcDir);
+  const index = resolved.assetIndex;
+  if (!index?.url || !index.sha1) return;
+
+  await withRetry(async () => {
+    const issue = await diagnoseAssetIndex(resolved, folder);
+    if (!issue) return;
+    const destination = folder.getAssetsIndex(resolved.assets);
+    await fs.mkdir(path.dirname(destination), { recursive: true });
+    await trackTask(
+      new DownloadTask({
+        url: index.url,
+        destination,
+        validator: { algorithm: "sha1", hash: index.sha1 },
+        dispatcher,
+      }),
+      "Загрузка индекса ресурсов"
     );
-  }
+  });
+}
 
-  if (needLibraries && resolvedVersion) {
-    sendPhase("Downloading libraries");
-    await runTaskWithRetry(
-      () =>
-        installLibrariesTask(resolvedVersion!, {
-          librariesDownloadConcurrency: DOWNLOAD_CONCURRENCY,
-        }),
-      "Downloading libraries"
+async function ensureAssets(
+  mcDir: MinecraftLocation,
+  resolved: ResolvedVersion,
+  dispatcher: Dispatcher,
+  knownMissing: Awaited<ReturnType<typeof missingAssets>> | null
+): Promise<void> {
+  let first = knownMissing;
+  await withRetry(async () => {
+    const missing = first ?? (await missingAssets(mcDir, resolved));
+    first = null;
+    if (missing.length === 0) return;
+    sendPhase("Загрузка ресурсов");
+    await trackTask(
+      installResolvedAssetsTask(missing, MinecraftFolder.from(mcDir), {
+        dispatcher,
+      }),
+      "Загрузка ресурсов"
     );
-  }
+  });
+}
 
-  return Version.parse(mcDir, mcVersion);
+async function ensureLibraries(
+  mcDir: MinecraftLocation,
+  resolved: ResolvedVersion,
+  dispatcher: Dispatcher,
+  knownMissing: Awaited<ReturnType<typeof missingLibraries>> | null
+): Promise<void> {
+  let first = knownMissing;
+  await withRetry(async () => {
+    const missing = first ?? (await missingLibraries(mcDir, resolved));
+    first = null;
+    if (missing.length === 0) return;
+    sendPhase("Загрузка библиотек");
+    await trackTask(
+      installResolvedLibrariesTask(missing, mcDir, { dispatcher }),
+      "Загрузка библиотек"
+    );
+  });
 }
 
 async function installLoader(
@@ -226,47 +199,47 @@ async function installLoader(
 
 /**
  * Installs Minecraft (+ loader) according to GameSpec.
- * @returns Final version id to launch (e.g. 1.16.4-forge-35.x.x)
+ * Downloads only files that are missing or corrupted.
+ * @returns Final version id to launch (e.g. 1.20.1-forge-47.4.10)
  */
 export default async function mcInstall(spec: GameSpec): Promise<string> {
   setMaxListeners(Infinity);
-  setupUndiciAgent({ connections: DOWNLOAD_CONCURRENCY });
-
+  const dispatcher = getDownloadDispatcher();
   const mcDir: MinecraftLocation = path.join(app.getPath("userData"), mcPath);
 
   try {
-    const vanilla = await ensureVanillaBase(mcDir, spec.mcVersion);
+    sendPhase("Проверка файлов игры");
+    await ensureVanillaVersion(mcDir, spec.mcVersion, dispatcher);
 
-    sendPhase("Checking Java...");
+    let resolved = await Version.parse(mcDir, spec.mcVersion);
+    await ensureAssetIndex(mcDir, resolved, dispatcher);
+    resolved = await Version.parse(mcDir, spec.mcVersion);
+
+    const report = await diagnoseInstall(mcDir, spec.mcVersion);
+    const assets = report.needsAssetIndex
+      ? await missingAssets(mcDir, resolved)
+      : report.assets;
+    await ensureAssets(mcDir, resolved, dispatcher, assets);
+    await ensureLibraries(mcDir, resolved, dispatcher, report.libraries);
+
+    const vanilla = await Version.parse(mcDir, spec.mcVersion);
     const javaPath = await resolveLaunchJava(
       vanilla.javaVersion ?? DEFAULT_JAVA
     );
-
     const versionId = await installLoader(spec, mcDir, javaPath);
 
-    sendPhase("Installing version dependencies...");
-    const resolved = await Version.parse(mcDir, versionId);
-    await runTaskWithRetry(
-      () =>
-        installDependenciesTask(resolved, {
-          assetsDownloadConcurrency: DOWNLOAD_CONCURRENCY,
-          librariesDownloadConcurrency: DOWNLOAD_CONCURRENCY,
-        }),
-      "Installing version dependencies..."
-    );
-
-    sendPhase("Minecraft installation complete", false);
-    return versionId;
-  } catch (e) {
-    const error = e as InstallationError;
-    console.error("Installation failed:", error);
-
-    if (isChecksumNotMatchError(error)) {
-      deleteCorruptedFile(error);
+    const loaderResolved = await Version.parse(mcDir, versionId);
+    if (loaderResolved.id !== vanilla.id) {
+      await ensureLibraries(mcDir, loaderResolved, dispatcher, null);
     }
 
-    sendError(`Installation error: ${formatError(error)}`);
-    sendPhase("Installation error", false);
+    sendPhase("Установка завершена", false);
+    return versionId;
+  } catch (error) {
+    const message = summarizeInstallError(error);
+    console.error("Installation failed:", message);
+    sendError(message);
+    sendPhase("Ошибка установки", false);
     throw error;
   }
 }

@@ -1,12 +1,8 @@
 import * as fs from "fs";
 import * as path from "path";
 import { app } from "electron";
-import {
-  byteProgress,
-  sendError,
-  sendPhase,
-} from "../../services/notifyService";
-import { getUndiciAgent } from "../../utils/undiciAgent";
+import { getDownloadDispatcher } from "../../utils/undiciAgent";
+import { trackTask } from "../installer/trackTask";
 import { readLaunchPrefs } from "../launchPrefs";
 import {
   fetchJavaRuntimeManifest,
@@ -44,32 +40,21 @@ export async function ensureJava(javaVersion: JavaVersion): Promise<string> {
     }
 
     // Download and install Java
-    console.log(`Downloading Java${javaVersion.majorVersion}...`);
-    const dispatcher = getUndiciAgent();
+    const title = `Загрузка Java ${javaVersion.majorVersion}`;
+    console.log(title);
+    const dispatcher = getDownloadDispatcher();
     const manifest = await fetchJavaRuntimeManifest({
       target: javaVersion.component,
+      dispatcher,
     });
-    console.log("Manifest ready");
-    const task = installJavaRuntimeTask({
-      destination: basePath,
-      manifest,
-    });
-
-    await task.startAndWait({
-      onStart(t) {
-        console.log(`Starting Java install: ${t.path}`);
-      },
-      onUpdate(t) {
-        byteProgress("Java", t.progress, t.total);
-      },
-      onFailed(t, err) {
-        console.error(`Java install failed: ${t.path}`, err);
-        sendPhase("Java install failed", false);
-      },
-      onSucceed(t) {
-        console.log(`Java installed: ${t.path}`);
-      },
-    });
+    await trackTask(
+      installJavaRuntimeTask({
+        destination: basePath,
+        manifest,
+        dispatcher,
+      }),
+      title
+    );
 
     // Verify path after installation
     const installedJavaInfo = await resolveJava(javaBinPath);
@@ -84,7 +69,6 @@ export async function ensureJava(javaVersion: JavaVersion): Promise<string> {
     throw new Error("Java was installed but could not be found afterwards.");
   } catch (e) {
     console.error("Error in ensureJava:", e);
-    sendError(`${e}`);
     throw e;
   }
 }

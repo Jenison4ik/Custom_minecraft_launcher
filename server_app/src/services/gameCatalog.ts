@@ -1,5 +1,4 @@
 import {
-  getForgeVersionList,
   getLoaderArtifactListFor,
   getQuiltLoaderVersionsByMinecraft,
   getVersionList,
@@ -8,6 +7,8 @@ import type { Loader } from "./profile.js";
 
 const TTL_MS = 10 * 60 * 1000;
 const NEOFORGE_META = "https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/neoforge";
+const FORGE_MAVEN_METADATA = "https://maven.minecraftforge.net/net/minecraftforge/forge/maven-metadata.xml";
+const FORGE_PROMOTIONS = "https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json";
 
 type CacheEntry = { expires: number; value: unknown };
 
@@ -35,6 +36,7 @@ async function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
     return value;
   } catch (error) {
     if (error instanceof VersionListError) throw error;
+    console.error(error);
     throw new VersionListError();
   }
 }
@@ -51,6 +53,46 @@ function neoForgePrefix(mcVersion: string): string {
   const major = parts[1] ?? "";
   const minor = parts[2] ?? "0";
   return `${major}.${minor}.`;
+}
+
+function compareForgeVersions(left: string, right: string): number {
+  const a = left.split(".").map((part) => Number.parseInt(part, 10));
+  const b = right.split(".").map((part) => Number.parseInt(part, 10));
+  const length = Math.max(a.length, b.length);
+  for (let index = 0; index < length; index += 1) {
+    const diff = (a[index] ?? 0) - (b[index] ?? 0);
+    if (Number.isFinite(diff) && diff !== 0) return diff;
+  }
+  return left.localeCompare(right);
+}
+
+async function fetchForgeVersions(mcVersion: string): Promise<{ versions: string[]; recommended: string }> {
+  const [metaResponse, promoResponse] = await Promise.all([
+    fetch(FORGE_MAVEN_METADATA),
+    fetch(FORGE_PROMOTIONS),
+  ]);
+  if (!metaResponse.ok) throw new VersionListError();
+
+  const xml = await metaResponse.text();
+  const prefix = `${mcVersion}-`;
+  const versions = [
+    ...new Set(
+      [...xml.matchAll(/<version>([^<]+)<\/version>/g)]
+        .map((match) => match[1])
+        .filter((version) => version.startsWith(prefix))
+        .map((version) => version.slice(prefix.length)),
+    ),
+  ].sort((left, right) => compareForgeVersions(right, left));
+  if (!versions.length) throw new VersionListError();
+
+  let recommended = versions[0];
+  if (promoResponse.ok) {
+    const data = (await promoResponse.json()) as { promos?: Record<string, string> };
+    const promos = data.promos ?? {};
+    const preferred = promos[`${mcVersion}-recommended`] ?? promos[`${mcVersion}-latest`];
+    if (preferred && versions.includes(preferred)) recommended = preferred;
+  }
+  return { versions, recommended };
 }
 
 async function fetchNeoForgeVersions(mcVersion: string): Promise<string[]> {
@@ -86,15 +128,7 @@ export function loaderCatalog(
     }
 
     if (loader === "forge") {
-      const list = await getForgeVersionList({ minecraft: mcVersion });
-      const versions = list.versions.map((version) => version.version);
-      const recommended =
-        list.versions.find((version) => version.type === "recommended")?.version ??
-        list.versions.find((version) => version.type === "latest")?.version ??
-        versions[0] ??
-        "";
-      if (!recommended) throw new VersionListError();
-      return { versions, recommended };
+      return fetchForgeVersions(mcVersion);
     }
 
     const versions = await fetchNeoForgeVersions(mcVersion);

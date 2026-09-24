@@ -1,6 +1,6 @@
-import { BrowserWindow } from "electron";
 import { CHANNELS } from "@jenison/shared";
 import type { DownloadStatus, ErrorToastType } from "@jenison/shared";
+import { getMainWindow } from "../window/createWindow";
 
 const THROTTLE_MS = 200;
 
@@ -8,12 +8,15 @@ let lastSent: DownloadStatus | null = null;
 let pending: DownloadStatus | null = null;
 let timer: ReturnType<typeof setTimeout> | null = null;
 
-function getMainWindow(): BrowserWindow | null {
-  const windows = BrowserWindow.getAllWindows();
-  return windows.length > 0 ? windows[0] : null;
+function finiteCount(value: number | null | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? value
+    : null;
 }
 
 function normalize(status: DownloadStatus): DownloadStatus {
+  const completedItems = finiteCount(status.completedItems);
+  const totalItems = finiteCount(status.totalItems);
   const { loadedBytes, totalBytes } = status;
   if (
     loadedBytes == null ||
@@ -27,6 +30,8 @@ function normalize(status: DownloadStatus): DownloadStatus {
       title: status.title,
       loadedBytes: null,
       totalBytes: null,
+      completedItems,
+      totalItems,
     };
   }
 
@@ -35,14 +40,19 @@ function normalize(status: DownloadStatus): DownloadStatus {
     title: status.title,
     totalBytes,
     loadedBytes: Math.max(0, Math.min(loadedBytes, totalBytes)),
+    completedItems,
+    totalItems,
   };
 }
 
 function deliver(status: DownloadStatus): void {
   lastSent = status;
   const window = getMainWindow();
-  if (window) {
+  if (!window || window.isDestroyed() || window.webContents.isDestroyed()) return;
+  try {
     window.webContents.send(CHANNELS.showDownloadStatus, status);
+  } catch (error) {
+    console.error("Failed to send download status:", error);
   }
 }
 
@@ -88,6 +98,26 @@ export function byteProgress(
     title,
     loadedBytes: loaded,
     totalBytes: total,
+    completedItems: null,
+    totalItems: null,
+  });
+}
+
+export function reportProgress(status: {
+  title: string;
+  loadedBytes: number | null;
+  totalBytes: number | null;
+  completedItems?: number | null;
+  totalItems?: number | null;
+  active?: boolean;
+}): void {
+  sendDownloadStatus({
+    active: status.active ?? true,
+    title: status.title,
+    loadedBytes: status.loadedBytes,
+    totalBytes: status.totalBytes,
+    completedItems: status.completedItems ?? null,
+    totalItems: status.totalItems ?? null,
   });
 }
 
@@ -97,6 +127,8 @@ export function sendPhase(title: string, active = true): void {
     title,
     loadedBytes: null,
     totalBytes: null,
+    completedItems: null,
+    totalItems: null,
   });
 }
 
@@ -110,10 +142,10 @@ export function sendError(
   }
 }
 
-export function sendLaunchStatus(isLaunching: boolean): void {
+export function sendLaunchStatus(isLaunching: boolean, canStop = false): void {
   const window = getMainWindow();
   if (window) {
-    window.webContents.send(CHANNELS.launchMinecraft, isLaunching);
+    window.webContents.send(CHANNELS.launchMinecraft, isLaunching, canStop);
   }
 }
 

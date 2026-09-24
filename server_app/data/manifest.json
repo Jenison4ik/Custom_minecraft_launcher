@@ -40,26 +40,6 @@
       "sha1": "94d96b5fffd9e98bd8448dcdd9e27f60511b1d29",
       "size": 1426500
     },
-    "mods/fabric-api-0.92.12+1.20.1.jar": {
-      "sha1": "3e9cdd3e2f827ca9a259df9eb8e31949437b6bd4",
-      "size": 2137232
-    },
-    "mods/iris-1.7.6+mc1.20.1.jar": {
-      "sha1": "880c0b9ce38bb4997645793407c1801df83f4233",
-      "size": 2726899
-    },
-    "mods/modmenu-7.2.2.jar": {
-      "sha1": "099c68feeb74887cbbbd8ce9a27c6123804a2c5a",
-      "size": 721366
-    },
-    "mods/ferritecore-6.0.1-fabric.jar": {
-      "sha1": "8fa3b84fc5860dbc30fdf8cced02af68dffcf3fa",
-      "size": 125197
-    },
-    "mods/curios-forge-5.14.1+1.20.1.jar": {
-      "sha1": "452175b95ad3db6ff58bb8968f6bf7a9d1e0f480",
-      "size": 398066
-    },
     "chisel-fabric-2.0.0+mc1.20.1.jar": {
       "sha1": "bed8de7dd7a2464c3c818ebe4ec31b80f34ea5c8",
       "size": 8268711
@@ -68,9 +48,45 @@
       "sha1": "b2290b215a8f7e9a2676b87ac1192271eae7467d",
       "size": 763896
     },
-    "mods/sodium-extra-0.5.9+mc1.20.1.jar": {
-      "sha1": "0f97ec3f395b223848a63573b1a46cbecf97f19f",
-      "size": 370701
+    "create-1.20.1-6.0.8.jar": {
+      "sha1": "b13d912b9247a38d66d11598c121442585a1c1e9",
+      "size": 19170905
+    },
+    "mods/Steam_Rails-1.7.3+forge-mc1.20.1.jar": {
+      "sha1": "5f904126d942cdbd272a5254ec6145851e5e1e7a",
+      "size": 17042037
+    },
+    "mods/createaddition-1.20.1-1.3.3.jar": {
+      "sha1": "c7d464c451fdc2979bc29a67d7eec2a30858af12",
+      "size": 1577313
+    },
+    "mods/copycats-3.0.10+mc.1.20.1-forge.jar": {
+      "sha1": "939d4ca4ac42b93c05a5fb92e629fb8cff060dc9",
+      "size": 2003713
+    },
+    "mods/create-1.20.1-6.0.8.jar": {
+      "sha1": "b13d912b9247a38d66d11598c121442585a1c1e9",
+      "size": 19170905
+    },
+    "mods/create_enchantment_industry-1.4.1-for-create-6.0.8.jar": {
+      "sha1": "253b76be7c97bd658d709c0a7418b8bca43c1221",
+      "size": 503399
+    },
+    "mods/divinerpg_compat-1.0.2.jar": {
+      "sha1": "53d9c5c0f2457440bf746c5d8f5680df10ee2086",
+      "size": 52657
+    },
+    "mods/DivineRPG-1.10.7.5.jar": {
+      "sha1": "5c67025048dc95b979fd02430ded615b534175e6",
+      "size": 28016649
+    },
+    "mods/notenoughanimations-forge-1.12.6-mc1.20.1.jar": {
+      "sha1": "993252c9946e22aa4ba0b28cb5b81183d5bcf50d",
+      "size": 1870649
+    },
+    "mods/skinlayers3d-forge-1.11.3-mc1.20.1.jar": {
+      "sha1": "066d8ce36155f0018e30e905240fc12e422972e9",
+      "size": 2093560
     }
   }
 }

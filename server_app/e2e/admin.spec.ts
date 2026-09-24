@@ -11,7 +11,7 @@ test("login, upload a file, then delete it", async ({ page }) => {
     mimeType: "application/java-archive",
     buffer: Buffer.from("e2e-file"),
   });
-  await page.getByLabel("Путь").fill("mods/e2e.jar");
+  await expect(page.getByLabel("Путь")).toHaveValue("mods/e2e.jar");
   await page.getByRole("button", { name: "Загрузить", exact: true }).click();
 
   const row = page.locator("p.text-xs", { hasText: "e2e.jar" });

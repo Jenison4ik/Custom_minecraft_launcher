@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Progress } from "@base-ui/react/progress";
 import type { DownloadStatus } from "@jenison/shared";
 
 const EMPTY: DownloadStatus = {
@@ -6,7 +7,11 @@ const EMPTY: DownloadStatus = {
   title: "",
   loadedBytes: null,
   totalBytes: null,
+  completedItems: null,
+  totalItems: null,
 };
+
+const fileCount = new Intl.NumberFormat("ru-RU");
 
 function formatBytes(n: number): string {
   if (!Number.isFinite(n) || n < 0) return "0 B";
@@ -21,10 +26,19 @@ function formatBytes(n: number): string {
   return `${value.toFixed(digits)} ${units[unit]}`;
 }
 
+function formatEta(seconds: number): string {
+  const rounded = Math.max(0, Math.round(seconds));
+  if (rounded < 60) return `~${rounded} с`;
+  const minutes = Math.floor(rounded / 60);
+  const rest = rounded % 60;
+  return rest === 0 ? `~${minutes} мин` : `~${minutes} мин ${rest} с`;
+}
+
 type SpeedSample = {
   title: string;
   loaded: number;
   at: number;
+  startedAt: number;
   speed: number | null;
 };
 
@@ -65,6 +79,7 @@ export default function DownloadBar() {
             title: next.title,
             loaded: next.loadedBytes,
             at: now,
+            startedAt: prev.startedAt,
             speed: smoothed,
           };
           setSpeed(smoothed);
@@ -76,6 +91,7 @@ export default function DownloadBar() {
         title: next.title,
         loaded: next.loadedBytes,
         at: now,
+        startedAt: prev?.title === next.title ? prev.startedAt : now,
         speed: prev?.title === next.title ? prev.speed : null,
       };
       if (!prev || prev.title !== next.title) setSpeed(null);
@@ -88,30 +104,56 @@ export default function DownloadBar() {
     status.loadedBytes != null &&
     status.totalBytes != null &&
     status.totalBytes > 0;
-  const percent = known
+  const itemsKnown =
+    status.completedItems != null &&
+    status.totalItems != null &&
+    status.totalItems > 0;
+  const bytePercent = known
     ? Math.round((status.loadedBytes! / status.totalBytes!) * 100)
     : null;
+  const itemPercent = itemsKnown
+    ? Math.round((status.completedItems! / status.totalItems!) * 100)
+    : null;
+  const percent = bytePercent ?? itemPercent;
+
+  const measuredFor =
+    sample.current && sample.current.title === status.title
+      ? performance.now() - sample.current.startedAt
+      : 0;
+  const showEta = known && speed != null && speed > 0 && measuredFor >= 1000;
+  const remainingBytes = known
+    ? Math.max(0, status.totalBytes! - status.loadedBytes!)
+    : 0;
 
   const parts: string[] = [];
   if (status.title) parts.push(status.title);
-  if (known && percent != null) {
+  if (itemsKnown) {
     parts.push(
-      `${formatBytes(status.loadedBytes!)} / ${formatBytes(status.totalBytes!)}`
+      `${fileCount.format(status.completedItems!)} / ${fileCount.format(status.totalItems!)} файлов`
     );
-    parts.push(`${percent}%`);
-    if (speed != null && speed > 0) parts.push(`${formatBytes(speed)}/s`);
+  }
+  if (percent != null) parts.push(`${percent} %`);
+  if (known && speed != null && speed > 0) parts.push(`${formatBytes(speed)}/s`);
+  if (showEta && remainingBytes > 0 && speed != null && speed > 0) {
+    parts.push(
+      `осталось ${formatBytes(remainingBytes)} (${formatEta(remainingBytes / speed)})`
+    );
   }
 
-  const width = known ? `${percent}%` : status.active ? "100%" : "0%";
+  const value = percent ?? (status.active ? 100 : 0);
 
   return (
     <div
       className={`launcher-download${status.active ? " launcher-download--visible" : ""}`}
     >
-      <div className="launcher-download-progress" style={{ width }}>
-        <div className="launcher-download-animation"></div>
-      </div>
-      <p className="launcher-download-message">{parts.join(" · ")}</p>
+      <Progress.Root className="launcher-download-progress" value={value} max={100}>
+        <Progress.Track className="launcher-download-track">
+          <Progress.Indicator className="launcher-download-fill">
+            <span className="launcher-download-animation" />
+          </Progress.Indicator>
+        </Progress.Track>
+      </Progress.Root>
+      <p className="launcher-download-message">{parts.join(", ")}</p>
     </div>
   );
 }

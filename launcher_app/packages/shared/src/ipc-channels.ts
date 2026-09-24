@@ -2,6 +2,8 @@ export const CHANNELS = {
   getConfigs: "get-configs",
   getMemSize: "get-mem-size",
   runMinecraft: "run-minecraft",
+  stopMinecraft: "stop-minecraft",
+  canStopMinecraft: "can-stop-minecraft",
   addToConfigs: "add-to-configs",
   openLauncherDir: "open-launcher-dir",
   downloadMinecraft: "download-minecraft",

@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "docker:build": "docker build -t server_mc .",
-    "docker:run": "docker run -d --env-file .env -p $(grep PORT .env | cut -d '=' -f2):$(grep PORT .env | cut -d '=' -f2) --name server_mc_container server_mc"
+    "docker:run": "docker run -d --env-file .env -p $(grep PORT .env | cut -d '=' -f2):$(grep PORT .env | cut -d '=' -f2) --name server_mc_container server_mc",
+    "docker:dev": "docker compose --env-file .env -f docker-compose.local.yml up --build "
   },
   "author": "Evgenii Solovev",
   "type": "module",

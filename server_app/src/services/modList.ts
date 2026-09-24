@@ -17,6 +17,7 @@ import { resolveInside } from "./safePath.js";
 
 export interface ListedMod {
   id: string;
+  modId: string;
   name: string;
   description: string;
   fileName: string;
@@ -227,6 +228,7 @@ function toListed(relativePath: string, mods: ParsedMod[]): ListedMod[] {
     seen.set(base, count + 1);
     return {
       id: count === 0 ? base : `${base}#${count}`,
+      modId: mod.modid,
       name: mod.name || fileName,
       description: mod.description,
       fileName,

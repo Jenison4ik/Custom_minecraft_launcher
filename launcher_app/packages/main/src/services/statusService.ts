@@ -1,12 +1,19 @@
 class StatusService {
-  #status = false;
+  #held = false;
 
-  setStatus(bool: boolean): void {
-    this.#status = bool;
+  /** True when a file check or a launch is already in progress. */
+  tryBegin(): boolean {
+    if (this.#held) return false;
+    this.#held = true;
+    return true;
+  }
+
+  end(): void {
+    this.#held = false;
   }
 
   getStatus(): boolean {
-    return this.#status;
+    return this.#held;
   }
 }
 

@@ -9,11 +9,15 @@ import {
   deleteGameFile,
   isSafePathError,
   listGameFiles,
+  modJarPath,
   saveGameFile,
 } from "../../services/gameFiles.js";
 import { withFsLock } from "../../services/lock.js";
 import { CatalogError, installCatalogMod, searchCatalog } from "../../services/catalog.js";
+import { forgetCatalogMod, listCatalogMods } from "../../services/catalogMods.js";
+import { readManifest } from "../../services/manifest.js";
 import { listReleaseIds, loaderCatalog, VersionListError } from "../../services/gameCatalog.js";
+import { listModIssues } from "../../services/modIssues.js";
 import { listMods } from "../../services/modList.js";
 import { LOADERS, ProfileError, readProfile, saveProfile, type Loader } from "../../services/profile.js";
 
@@ -95,6 +99,11 @@ export function adminRouter(config: AppConfig): Router {
     }
   });
 
+  router.get("/mods/issues", async (_req, res) => {
+    const issues = await listModIssues(config);
+    res.json({ issues });
+  });
+
   router.get("/mods", async (req, res) => {
     const q = typeof req.query.q === "string" ? req.query.q : "";
     const limit = clampInt(req.query.limit, 50, 1, 200);
@@ -113,7 +122,7 @@ export function adminRouter(config: AppConfig): Router {
 
   router.put("/files", upload.single("file"), async (req, res) => {
     try {
-      const relativePath = typeof req.body?.path === "string" ? req.body.path : "";
+      const relativePath = modJarPath(typeof req.body?.path === "string" ? req.body.path : "");
       if (!req.file) {
         res.status(400).json({ error: "No file uploaded" });
         return;
@@ -149,6 +158,7 @@ export function adminRouter(config: AppConfig): Router {
         return;
       }
       await deleteGameFile(config, relativePath);
+      await forgetCatalogMod(config.dataDir, relativePath);
       res.json({ ok: true });
     } catch (error) {
       if (isSafePathError(error)) {
@@ -158,6 +168,17 @@ export function adminRouter(config: AppConfig): Router {
       const status = statusOf(error);
       if (status >= 500) console.error(error);
       res.status(status).json({ error: status === 404 ? "File not found" : "Error deleting file" });
+    }
+  });
+
+  router.get("/mods/catalog", async (_req, res) => {
+    try {
+      const manifest = (await readManifest(config.dataDir)) ?? { files: {} };
+      const mods = await listCatalogMods(config.dataDir, new Set(Object.keys(manifest.files)));
+      res.json({ mods });
+    } catch (error) {
+      console.error(error);
+      res.status(statusOf(error)).json({ error: "Error reading catalog mods" });
     }
   });
 

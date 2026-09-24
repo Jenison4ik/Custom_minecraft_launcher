@@ -10,6 +10,8 @@ import type {
 const launcherAPI: LauncherAPI = {
   getConfigs: () => ipcRenderer.invoke(CHANNELS.getConfigs),
   runMinecraft: () => ipcRenderer.invoke(CHANNELS.runMinecraft),
+  stopMinecraft: () => ipcRenderer.invoke(CHANNELS.stopMinecraft),
+  canStopMinecraft: () => ipcRenderer.invoke(CHANNELS.canStopMinecraft),
   openLauncherDir: () => ipcRenderer.invoke(CHANNELS.openLauncherDir),
   addToConfigs: (params: ConfigEntry[]) =>
     ipcRenderer.invoke(CHANNELS.addToConfigs, params),
@@ -27,16 +29,19 @@ const launcherAPI: LauncherAPI = {
       callback(status);
     };
 
-    ipcRenderer.removeAllListeners(CHANNELS.showDownloadStatus);
     ipcRenderer.on(CHANNELS.showDownloadStatus, listener);
 
     return () => {
       ipcRenderer.removeListener(CHANNELS.showDownloadStatus, listener);
     };
   },
-  onMinecraft: (callback: (status: boolean) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, status: boolean) => {
-      callback(status);
+  onMinecraft: (callback: (status: boolean, canStop?: boolean) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      status: boolean,
+      canStop?: boolean
+    ) => {
+      callback(status, canStop);
     };
 
     ipcRenderer.on(CHANNELS.launchMinecraft, listener);

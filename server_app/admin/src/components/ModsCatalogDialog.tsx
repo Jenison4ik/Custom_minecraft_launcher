@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -13,30 +13,26 @@ import {
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
-import { api } from "@/lib/api";
+import { ApiError, api } from "@/lib/api";
 
 type Source = "modrinth" | "curseforge";
-type Loader = "fabric" | "forge" | "neoforge" | "quilt";
-
-type CatalogHit = { id: string; title: string; description: string; iconUrl: string | null };
+type PackLoader = "vanilla" | "fabric" | "forge" | "quilt" | "neoforge";
+type ModLoader = Exclude<PackLoader, "vanilla">;
+type GameProfile = { mcVersion: string; loader: PackLoader };
+type CatalogHit = { id: string; slug: string; title: string; description: string; iconUrl: string | null };
 type CatalogPage = { total: number; hits: CatalogHit[] };
+type InstalledMod = { modId: string; name: string };
+type InstalledPage = { mods: InstalledMod[] };
+type CatalogRef = { source: Source; projectId: string };
 
-const loaders: { value: Loader; label: string }[] = [
-  { value: "fabric", label: "Fabric" },
-  { value: "forge", label: "Forge" },
-  { value: "neoforge", label: "NeoForge" },
-  { value: "quilt", label: "Quilt" },
-];
+function sameText(left: string, right: string): boolean {
+  return left.trim().toLowerCase().replace(/\s+/g, " ") === right.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+const packRequired = "Сначала сохраните сборку с Fabric, Forge, Quilt или NeoForge.";
 
 export function ModsCatalogDialog({
   open,
@@ -47,22 +43,46 @@ export function ModsCatalogDialog({
 }) {
   const queryClient = useQueryClient();
   const [source, setSource] = useState<Source>("modrinth");
-  const [gameVersion, setGameVersion] = useState("");
-  const [loader, setLoader] = useState<Loader | "">("");
   const [q, setQ] = useState("");
   const [search, setSearch] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [scrollRoot, setScrollRoot] = useState<HTMLDivElement | null>(null);
 
-  const ready = gameVersion.trim() !== "" && loader !== "";
+  const profile = useQuery({
+    queryKey: ["profile"],
+    queryFn: async () => {
+      try {
+        return await api<GameProfile>("/admin/profile");
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) return null;
+        throw error;
+      }
+    },
+  });
+
+  const installed = useQuery({
+    queryKey: ["mods", "all"],
+    enabled: open,
+    queryFn: () => api<InstalledPage>("/admin/mods?limit=1000&offset=0"),
+  });
+  const catalogMods = useQuery({
+    queryKey: ["catalog-mods"],
+    enabled: open,
+    queryFn: () => api<{ mods: CatalogRef[] }>("/admin/mods/catalog"),
+  });
+
+  const gameVersion = profile.data?.mcVersion.trim() ?? "";
+  const loader: ModLoader | "" =
+    profile.data && profile.data.loader !== "vanilla" ? profile.data.loader : "";
+  const ready = gameVersion !== "" && loader !== "";
 
   const catalog = useInfiniteQuery({
-    queryKey: ["catalog", source, gameVersion.trim(), loader, search],
+    queryKey: ["catalog", source, gameVersion, loader, search],
     enabled: open && submitted && ready,
     initialPageParam: 0,
     queryFn: ({ pageParam }) =>
       api<CatalogPage>(
-        `/admin/mods/search?source=${source}&q=${encodeURIComponent(search)}&gameVersion=${encodeURIComponent(gameVersion.trim())}&loader=${loader}&offset=${pageParam}`,
+        `/admin/mods/search?source=${source}&q=${encodeURIComponent(search)}&gameVersion=${encodeURIComponent(gameVersion)}&loader=${loader}&offset=${pageParam}`,
       ),
     getNextPageParam: (lastPage, pages) => {
       const loaded = pages.reduce((count, page) => count + page.hits.length, 0);
@@ -81,19 +101,24 @@ export function ModsCatalogDialog({
   );
 
   const install = useMutation({
-    mutationFn: (projectId: string) =>
+    mutationFn: (project: { source: Source; projectId: string }) =>
       api(`/admin/mods/install`, {
         method: "POST",
         body: JSON.stringify({
-          source,
-          projectId,
-          gameVersion: gameVersion.trim(),
+          source: project.source,
+          projectId: project.projectId,
+          gameVersion,
           loader,
         }),
       }),
-    onSuccess: async () => {
+    onSuccess: async (_data, project) => {
+      queryClient.setQueryData<{ mods: CatalogRef[] }>(["catalog-mods"], (current) => ({
+        mods: [...(current?.mods ?? []), { source: project.source, projectId: project.projectId }],
+      }));
       toast.success("Мод добавлен");
       await queryClient.invalidateQueries({ queryKey: ["mods"] });
+      await queryClient.invalidateQueries({ queryKey: ["catalog-mods"] });
+      await queryClient.invalidateQueries({ queryKey: ["mod-issues"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -101,7 +126,7 @@ export function ModsCatalogDialog({
   function onSearch(event: FormEvent) {
     event.preventDefault();
     if (!ready) {
-      toast.error("Укажите версию и загрузчик");
+      toast.error(packRequired);
       setSubmitted(false);
       return;
     }
@@ -114,7 +139,9 @@ export function ModsCatalogDialog({
       <DialogContent className="flex max-h-[min(42rem,calc(100dvh-2rem))] w-full flex-col gap-4 overflow-hidden sm:max-w-3xl">
         <DialogHeader className="pr-8">
           <DialogTitle>Загрузить моды</DialogTitle>
-          <DialogDescription>Последний релиз попадёт в mods.</DialogDescription>
+          <DialogDescription>
+            {ready ? `Сборка ${gameVersion}, ${loader}. Последний релиз попадёт в mods.` : "Последний релиз попадёт в mods."}
+          </DialogDescription>
         </DialogHeader>
 
         <Tabs
@@ -134,119 +161,112 @@ export function ModsCatalogDialog({
           </TabsList>
         </Tabs>
 
-        <form
-          className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[minmax(0,7.5rem)_minmax(0,10rem)_minmax(0,1fr)_auto]"
-          onSubmit={onSearch}
-        >
-          <div className="grid gap-1.5">
-            <Label htmlFor="mod-version">Версия</Label>
-            <Input
-              id="mod-version"
-              value={gameVersion}
-              placeholder="1.20.1"
-              onChange={(event) => {
-                setGameVersion(event.target.value);
-                setSubmitted(false);
-              }}
-            />
-          </div>
-          <div className="grid min-w-0 gap-1.5">
-            <Label htmlFor="mod-loader">Загрузчик</Label>
-            <Select
-              value={loader || undefined}
-              onValueChange={(value) => {
-                setLoader(value as Loader);
-                setSubmitted(false);
-              }}
-            >
-              <SelectTrigger id="mod-loader" className="w-full">
-                <SelectValue placeholder="Выберите" />
-              </SelectTrigger>
-              <SelectContent position="popper" align="start">
-                {loaders.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <form className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto]" onSubmit={onSearch}>
           <div className="grid min-w-0 gap-1.5">
             <Label htmlFor="mod-query">Поиск</Label>
             <Input id="mod-query" value={q} placeholder="sodium" onChange={(event) => setQ(event.target.value)} />
           </div>
-          <Button type="submit">Найти</Button>
+          <Button type="submit" disabled={profile.isPending || !ready}>
+            Найти
+          </Button>
         </form>
 
         <div
           ref={setScrollRoot}
           className="h-[min(22rem,calc(100dvh-16rem))] overflow-y-auto rounded-lg border border-border"
         >
-            {!submitted ? (
-              <Empty className="h-full border-0">
-                <EmptyHeader>
-                  <EmptyTitle>Найдите мод</EmptyTitle>
-                  <EmptyDescription>Укажите версию, загрузчик и запрос.</EmptyDescription>
-                </EmptyHeader>
-              </Empty>
-            ) : null}
-            {catalog.isPending && submitted ? (
-              <div className="grid gap-px p-2">
-                {Array.from({ length: 4 }, (_, index) => (
-                  <Skeleton key={index} className="h-16 w-full" />
-                ))}
-              </div>
-            ) : null}
-            {catalog.isError ? (
-              <div className="p-3">
-                <Alert variant="destructive">
-                  <AlertDescription>{catalog.error.message}</AlertDescription>
-                </Alert>
-              </div>
-            ) : null}
-            {catalog.isSuccess && hits.length === 0 ? (
-              <Empty className="border-0">
-                <EmptyHeader>
-                  <EmptyTitle>Ничего не найдено</EmptyTitle>
-                  <EmptyDescription>Смените версию, загрузчик или запрос.</EmptyDescription>
-                </EmptyHeader>
-              </Empty>
-            ) : null}
-            {hits.length > 0 ? (
-              <ul>
-                {hits.map((hit) => {
-                  const pending = install.isPending && install.variables === hit.id;
-                  return (
-                    <li
-                      key={`${source}-${hit.id}`}
-                      className="flex items-center gap-3 border-b border-border px-3 py-3 last:border-b-0"
-                    >
-                      {hit.iconUrl ? (
-                        <img src={hit.iconUrl} alt="" className="size-10 shrink-0 rounded-md object-cover" />
-                      ) : (
-                        <div className="size-10 shrink-0 rounded-md bg-muted" />
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">{hit.title}</p>
-                        <p className="truncate text-xs text-muted-foreground">{hit.description}</p>
-                      </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        className="shrink-0"
-                        disabled={pending}
-                        onClick={() => install.mutate(hit.id)}
-                      >
-                        {pending ? "Добавление" : "Добавить"}
-                      </Button>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : null}
-            <div ref={sentinel} className="h-6">
-              {catalog.isFetchingNextPage ? <Skeleton className="mx-3 h-14" /> : null}
+          {profile.isPending ? (
+            <div className="grid gap-px p-2">
+              <Skeleton className="h-16 w-full" />
             </div>
+          ) : null}
+          {profile.isError ? (
+            <div className="p-3">
+              <Alert variant="destructive">
+                <AlertDescription>{profile.error.message}</AlertDescription>
+              </Alert>
+            </div>
+          ) : null}
+          {!profile.isPending && !profile.isError && !ready ? (
+            <Empty className="h-full border-0">
+              <EmptyHeader>
+                <EmptyTitle>Сборка не задана</EmptyTitle>
+                <EmptyDescription>{packRequired}</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          ) : null}
+          {ready && !submitted ? (
+            <Empty className="h-full border-0">
+              <EmptyHeader>
+                <EmptyTitle>Найдите мод</EmptyTitle>
+                <EmptyDescription>Введите запрос.</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          ) : null}
+          {catalog.isPending && submitted ? (
+            <div className="grid gap-px p-2">
+              {Array.from({ length: 4 }, (_, index) => (
+                <Skeleton key={index} className="h-16 w-full" />
+              ))}
+            </div>
+          ) : null}
+          {catalog.isError ? (
+            <div className="p-3">
+              <Alert variant="destructive">
+                <AlertDescription>{catalog.error.message}</AlertDescription>
+              </Alert>
+            </div>
+          ) : null}
+          {catalog.isSuccess && hits.length === 0 ? (
+            <Empty className="border-0">
+              <EmptyHeader>
+                <EmptyTitle>Ничего не найдено</EmptyTitle>
+                <EmptyDescription>Смените запрос.</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          ) : null}
+          {hits.length > 0 ? (
+            <ul>
+              {hits.map((hit) => {
+                const pending = install.isPending && install.variables?.projectId === hit.id && install.variables.source === source;
+                const already =
+                  (catalogMods.data?.mods ?? []).some((ref) => ref.source === source && ref.projectId === hit.id) ||
+                  (installed.data?.mods ?? []).some(
+                    (mod) =>
+                      sameText(mod.name, hit.title) ||
+                      (Boolean(hit.slug) && Boolean(mod.modId) && mod.modId.toLowerCase() === hit.slug.toLowerCase()),
+                  );
+                return (
+                  <li
+                    key={`${source}-${hit.id}`}
+                    className="flex items-center gap-3 border-b border-border px-3 py-3 last:border-b-0"
+                  >
+                    {hit.iconUrl ? (
+                      <img src={hit.iconUrl} alt="" className="size-10 shrink-0 rounded-md object-cover" />
+                    ) : (
+                      <div className="size-10 shrink-0 rounded-md bg-muted" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{hit.title}</p>
+                      <p className="truncate text-xs text-muted-foreground">{hit.description}</p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="shrink-0"
+                      disabled={pending || already}
+                      onClick={() => install.mutate({ source, projectId: hit.id })}
+                    >
+                      {pending ? "Добавление" : already ? "Добавлено" : "Добавить"}
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
+          <div ref={sentinel} className="h-6">
+            {catalog.isFetchingNextPage ? <Skeleton className="mx-3 h-14" /> : null}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

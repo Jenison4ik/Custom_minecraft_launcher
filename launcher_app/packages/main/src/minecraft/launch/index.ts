@@ -1,8 +1,9 @@
+import { createHash } from "crypto";
 import { app } from "electron";
 import fs from "fs/promises";
 import path from "path";
-import { DEFAULT_EXTRA_JVM_ARGS, Version, launch } from "@xmcl/core";
-import { ChildProcess } from "child_process";
+import { DEFAULT_EXTRA_JVM_ARGS, LaunchPrecheck, Version, launch } from "@xmcl/core";
+import { ChildProcess, spawn } from "child_process";
 import { mcPath } from "../../services/paths";
 import { resolveLaunchJava } from "../java";
 import { readLaunchPrefs } from "../launchPrefs";
@@ -26,16 +27,52 @@ import {
 import type { GameSpec } from "../../types/LauncherConfig";
 import type { JavaVersion } from "@xmcl/core";
 
+let gameProcess: ChildProcess | null = null;
+
+function processIsAlive(proc: ChildProcess | null): proc is ChildProcess {
+  return proc != null && proc.exitCode == null && proc.signalCode == null;
+}
+
+export function canStopMinecraft(): boolean {
+  return processIsAlive(gameProcess);
+}
+
+export function stopMinecraft(): boolean {
+  const proc = gameProcess;
+  if (!processIsAlive(proc) || proc.pid == null) return false;
+
+  if (process.platform === "win32") {
+    const killer = spawn("taskkill", ["/PID", String(proc.pid), "/T", "/F"], {
+      windowsHide: true,
+    });
+    killer.on("error", () => {
+      proc.kill();
+    });
+  } else {
+    proc.kill("SIGTERM");
+  }
+  return true;
+}
+
 const DEFAULT_JAVA: JavaVersion = {
   majorVersion: 8,
   component: "jre-legacy",
 };
 
+/** Same algorithm as Java `UUID.nameUUIDFromBytes("OfflinePlayer:" + name)`. */
+function offlinePlayerId(name: string): string {
+  const hash = createHash("md5").update(`OfflinePlayer:${name}`, "utf8").digest();
+  hash[6] = (hash[6] & 0x0f) | 0x30;
+  hash[8] = (hash[8] & 0x3f) | 0x80;
+  const hex = hash.toString("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 function cleanupOnError(errorMessage: string): void {
   sendError(errorMessage);
   sendPhase("Error launching Minecraft", false);
   sendLaunchStatus(false);
-  Status.setStatus(false);
+  Status.end();
 }
 
 function setupProcessHandlers(proc: ChildProcess): void {
@@ -71,16 +108,18 @@ function setupProcessHandlers(proc: ChildProcess): void {
   });
 
   proc.on("error", (error: Error) => {
+    if (gameProcess === proc) gameProcess = null;
     showMainWindow();
     cleanupOnError("Error launching Minecraft: " + error.message);
   });
 
   proc.on("exit", (code: number | null, signal: string | null) => {
     console.log(`Minecraft ended with code: ${code}, signal: ${signal}`);
+    if (gameProcess === proc) gameProcess = null;
     showMainWindow();
     sendPhase("Minecraft exited", false);
     sendLaunchStatus(false);
-    Status.setStatus(false);
+    Status.end();
   });
 }
 
@@ -111,8 +150,8 @@ async function findExistingLaunchId(
 }
 
 export default async function mcLaunch(spec?: GameSpec) {
+  if (!Status.tryBegin()) return;
   sendLaunchStatus(true);
-  Status.setStatus(true);
 
   try {
     const provided = spec !== undefined;
@@ -151,10 +190,7 @@ export default async function mcLaunch(spec?: GameSpec) {
       versionId = existing;
     }
 
-    sendPhase("Parsing Minecraft version");
     const resolvedVersion = await Version.parse(BASE_DIR, versionId);
-
-    sendPhase("Checking Java");
     const prefs = readLaunchPrefs();
     const javaPath = await resolveLaunchJava(
       resolvedVersion.javaVersion ?? DEFAULT_JAVA
@@ -171,14 +207,14 @@ export default async function mcLaunch(spec?: GameSpec) {
       fullscreen: prefs.fullscreen,
     });
 
-    sendPhase("Launching Minecraft");
     const proc: ChildProcess = await launch({
       gamePath: BASE_DIR,
       javaPath: javaPath,
       version: versionId,
+      prechecks: [LaunchPrecheck.checkVersion, LaunchPrecheck.checkNatives],
       gameProfile: {
         name: gameSpec.nickname || "Player",
-        id: "offline-id",
+        id: offlinePlayerId(gameSpec.nickname || "Player"),
       },
       minMemory: Math.min(512, gameSpec.ram),
       maxMemory: gameSpec.ram,
@@ -192,7 +228,9 @@ export default async function mcLaunch(spec?: GameSpec) {
         : {}),
     });
 
+    gameProcess = proc;
     setupProcessHandlers(proc);
+    sendLaunchStatus(true, true);
 
     if (prefs.closeOnLaunch) {
       hideMainWindow();

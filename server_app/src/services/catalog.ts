@@ -19,6 +19,7 @@ import {
   type File as CurseforgeFile,
 } from "@xmcl/curseforge";
 import type { AppConfig } from "../config.js";
+import { rememberCatalogMod } from "./catalogMods.js";
 import { saveGameFile } from "./gameFiles.js";
 
 const MAX_JAR_BYTES = 100 * 1024 * 1024;
@@ -38,6 +39,7 @@ export type ModLoader = (typeof LOADERS)[number];
 
 export interface CatalogHit {
   id: string;
+  slug: string;
   title: string;
   description: string;
   iconUrl: string | null;
@@ -154,6 +156,7 @@ function jarFileName(filename: string): string {
 function modrinthHit(hit: SearchResultHit): CatalogHit {
   return {
     id: hit.project_id,
+    slug: hit.slug || "",
     title: hit.title,
     description: hit.description,
     iconUrl: hit.icon_url || null,
@@ -164,6 +167,7 @@ function curseforgeHit(mod: Mod): CatalogHit {
   const logo = mod.logo;
   return {
     id: String(mod.id),
+    slug: mod.slug || "",
     title: mod.name,
     description: mod.summary,
     iconUrl: logo?.thumbnailUrl || logo?.url || null,
@@ -354,6 +358,7 @@ export async function installCatalogMod(
   try {
     await downloadJar(file.url, temp, hosts);
     const entry = await saveGameFile(config, relativePath, temp);
+    await rememberCatalogMod(config.dataDir, relativePath, source, projectId);
     return { path: relativePath, ...entry };
   } catch (error) {
     await fs.rm(temp, { force: true });

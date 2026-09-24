@@ -13,8 +13,8 @@ import path from "path";
 
 export function registerDownloadHandlers(): void {
   ipcMain.handle(CHANNELS.downloadMinecraft, async () => {
+    if (!Status.tryBegin()) return;
     sendLaunchStatus(true);
-    Status.setStatus(true);
     try {
       const context = await loadLaunchContext();
       const versionId = await mcInstall(context.spec);
@@ -28,7 +28,7 @@ export function registerDownloadHandlers(): void {
       throw e;
     } finally {
       sendLaunchStatus(false);
-      Status.setStatus(false);
+      Status.end();
     }
   });
 

@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from "react";
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import AnimatedFileUpload from "@/components/smoothui/animated-file-upload";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel } from "@/components/smoothui/dialog";
 import Skeleton from "@/components/smoothui/skeleton-loader";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,12 +24,22 @@ type ModRow = {
   iconDataUrl: string | null;
 };
 type ModPage = { total: number; limit: number; offset: number; mods: ModRow[] };
+type ModIssue = { modName: string; message: string };
 type PendingFile = { key: string; file: File; path: string };
 
 const pageSize = 40;
+const visibleIssues = 3;
+
+function toModPath(filePath: string): string {
+  const normalized = filePath.trim().replaceAll("\\", "/").replace(/^\/+/, "");
+  if (!normalized) return "";
+  const lower = normalized.toLowerCase();
+  if (lower === "mods" || lower.startsWith("mods/")) return normalized;
+  return `mods/${normalized}`;
+}
 
 function pendingPath(file: File): string {
-  return (file.webkitRelativePath || file.name).replaceAll("\\", "/");
+  return toModPath(file.webkitRelativePath || file.name);
 }
 
 function isJar(filePath: string): boolean {
@@ -43,6 +54,14 @@ export function FilesPage() {
   const [uploadKey, setUploadKey] = useState(0);
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+
+  const issues = useQuery({
+    queryKey: ["mod-issues"],
+    queryFn: () => api<{ issues: ModIssue[] }>("/admin/mods/issues"),
+  });
+  const issueList = issues.data?.issues ?? [];
+  const shownIssues = issueList.slice(0, visibleIssues);
+  const hiddenIssues = issueList.slice(visibleIssues);
 
   const files = useInfiniteQuery({
     queryKey: ["mods", search],
@@ -70,11 +89,12 @@ export function FilesPage() {
   const upload = useMutation({
     mutationFn: async (items: PendingFile[]) => {
       if (items.length === 0) throw new Error("Выберите файлы");
-      if (items.some((item) => !item.path.trim())) throw new Error("Укажите путь для каждого файла");
-      if (items.some((item) => !isJar(item.path))) throw new Error("Можно загружать только .jar");
-      for (const item of items) {
+      const uploads = items.map((item) => ({ ...item, path: toModPath(item.path) }));
+      if (uploads.some((item) => !item.path)) throw new Error("Укажите путь для каждого файла");
+      if (uploads.some((item) => !isJar(item.path))) throw new Error("Можно загружать только .jar");
+      for (const item of uploads) {
         const body = new FormData();
-        body.set("path", item.path.trim());
+        body.set("path", item.path);
         body.set("file", item.file);
         await api("/admin/files", { method: "PUT", body });
       }
@@ -85,6 +105,7 @@ export function FilesPage() {
       setPending([]);
       setUploadKey((value) => value + 1);
       await queryClient.invalidateQueries({ queryKey: ["mods"] });
+      await queryClient.invalidateQueries({ queryKey: ["mod-issues"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -96,6 +117,8 @@ export function FilesPage() {
       toast.success("Файл удалён");
       setPendingDelete(null);
       await queryClient.invalidateQueries({ queryKey: ["mods"] });
+      await queryClient.invalidateQueries({ queryKey: ["catalog-mods"] });
+      await queryClient.invalidateQueries({ queryKey: ["mod-issues"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -179,6 +202,40 @@ export function FilesPage() {
       </section>
 
       <section className="flex flex-col gap-4">
+        {issues.isError ? (
+          <Alert variant="destructive">
+            <AlertDescription>{issues.error.message}</AlertDescription>
+          </Alert>
+        ) : null}
+        {issueList.length > 0 ? (
+          <Alert variant="destructive" className="border-destructive/40 bg-destructive/10">
+            <AlertTitle>Проблемы модов</AlertTitle>
+            <AlertDescription>
+              <ul className="grid gap-1">
+                {shownIssues.map((issue) => (
+                  <li key={issue.message}>{issue.message}</li>
+                ))}
+              </ul>
+              {hiddenIssues.length > 0 ? (
+                <Collapsible className="mt-2">
+                  <CollapsibleContent>
+                    <ul className="grid gap-1 pb-2">
+                      {hiddenIssues.map((issue) => (
+                        <li key={issue.message}>{issue.message}</li>
+                      ))}
+                    </ul>
+                  </CollapsibleContent>
+                  <CollapsibleTrigger asChild>
+                    <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-destructive">
+                      <span className="in-data-[state=open]:hidden">Показать ещё {hiddenIssues.length}</span>
+                      <span className="hidden in-data-[state=open]:inline">Скрыть</span>
+                    </Button>
+                  </CollapsibleTrigger>
+                </Collapsible>
+              ) : null}
+            </AlertDescription>
+          </Alert>
+        ) : null}
         <div className="flex items-end justify-between gap-4">
           <h2 className="text-base font-medium">Моды</h2>
           <p className="text-sm text-muted-foreground">{total}</p>

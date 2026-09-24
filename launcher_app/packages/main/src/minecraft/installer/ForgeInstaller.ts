@@ -1,9 +1,11 @@
 import {
   getForgeVersionList,
-  installForge,
+  installForgeTask,
   type ForgeVersion,
 } from "@xmcl/installer";
+import { trackTask } from "./trackTask";
 import { sendPhase } from "../../services/notifyService";
+import { getDownloadDispatcher } from "../../utils/undiciAgent";
 import {
   findVersionId,
   listInstalledVersionIds,
@@ -48,8 +50,31 @@ export default async function installForgeLoader(options: {
 }): Promise<string> {
   const { mcVersion, mcDir, loaderVersion, javaPath } = options;
 
-  sendPhase("Fetching Forge version list...");
-  const list = await getForgeVersionList({ minecraft: mcVersion });
+  if (loaderVersion) {
+    const installed = listInstalledVersionIds(mcDir);
+    const existingId =
+      [
+        `${mcVersion}-forge-${loaderVersion}`,
+        `${mcVersion}-forge${loaderVersion}`,
+      ].find((id) => installed.includes(id)) ??
+      findVersionId(installed, [
+        (id) =>
+          id.includes("forge") &&
+          id.includes(mcVersion) &&
+          id.includes(loaderVersion),
+      ]);
+    if (existingId) {
+      const parsed = await tryParseVersion(mcDir, existingId);
+      if (parsed) {
+        sendPhase(`Forge уже установлен`);
+        return existingId;
+      }
+    }
+  }
+
+  sendPhase("Список версий Forge");
+  const dispatcher = getDownloadDispatcher();
+  const list = await getForgeVersionList({ minecraft: mcVersion, dispatcher });
   const forgeMeta = pickForgeVersion(list.versions, loaderVersion);
 
   const expectedIds = [
@@ -71,23 +96,30 @@ export default async function installForgeLoader(options: {
   if (existingId) {
     const parsed = await tryParseVersion(mcDir, existingId);
     if (parsed) {
-      sendPhase(`Forge already installed: ${existingId}`);
+      sendPhase(`Forge уже установлен`);
       return existingId;
     }
   }
 
-  sendPhase(`Installing Forge ${forgeMeta.version} for ${mcVersion}...`);
+  sendPhase(`Установка Forge ${forgeMeta.version}`);
 
-  const versionId = await installForge(
-    {
-      mcversion: forgeMeta.mcversion,
-      version: forgeMeta.version,
-      installer: forgeMeta.installer,
-    },
-    mcDir,
-    javaPath ? { java: javaPath, side: "client" } : { side: "client" }
+  const versionId = await trackTask(
+    installForgeTask(
+      {
+        mcversion: forgeMeta.mcversion,
+        version: forgeMeta.version,
+        installer: forgeMeta.installer,
+      },
+      mcDir,
+      {
+        side: "client",
+        dispatcher: getDownloadDispatcher(),
+        ...(javaPath ? { java: javaPath } : {}),
+      }
+    ),
+    `Установка Forge ${forgeMeta.version}`
   );
 
-  sendPhase(`Forge installed: ${versionId}`);
+  sendPhase(`Forge установлен`);
   return versionId;
 }

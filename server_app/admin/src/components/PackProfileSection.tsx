@@ -101,6 +101,7 @@ export function PackProfileSection() {
       setLoaderVersion(saved.loaderVersion || recommended);
       setServers(saved.servers);
       await queryClient.invalidateQueries({ queryKey: ["profile"] });
+      await queryClient.invalidateQueries({ queryKey: ["mod-issues"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });

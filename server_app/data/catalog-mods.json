@@ -1,0 +1,40 @@
+{
+  "mods": {
+    "mods/Steam_Rails-1.7.3+forge-mc1.20.1.jar": {
+      "source": "modrinth",
+      "projectId": "ZzjhlDgM"
+    },
+    "mods/createaddition-1.20.1-1.3.3.jar": {
+      "source": "modrinth",
+      "projectId": "kU1G12Nn"
+    },
+    "mods/copycats-3.0.10+mc.1.20.1-forge.jar": {
+      "source": "modrinth",
+      "projectId": "UT2M39wf"
+    },
+    "mods/create-1.20.1-6.0.8.jar": {
+      "source": "modrinth",
+      "projectId": "LNytGWDc"
+    },
+    "mods/create_enchantment_industry-1.4.1-for-create-6.0.8.jar": {
+      "source": "curseforge",
+      "projectId": "688768"
+    },
+    "mods/divinerpg_compat-1.0.2.jar": {
+      "source": "modrinth",
+      "projectId": "LBDJRCEy"
+    },
+    "mods/DivineRPG-1.10.7.5.jar": {
+      "source": "modrinth",
+      "projectId": "F3kLpGw6"
+    },
+    "mods/notenoughanimations-forge-1.12.6-mc1.20.1.jar": {
+      "source": "modrinth",
+      "projectId": "MPCX6s5C"
+    },
+    "mods/skinlayers3d-forge-1.11.3-mc1.20.1.jar": {
+      "source": "modrinth",
+      "projectId": "zV5r3pPn"
+    }
+  }
+}

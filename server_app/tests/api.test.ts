@@ -25,7 +25,6 @@ vi.mock("@xmcl/modrinth", () => ({
 const installer = vi.hoisted(() => ({
   getVersionList: vi.fn(),
   getLoaderArtifactListFor: vi.fn(),
-  getForgeVersionList: vi.fn(),
   getQuiltLoaderVersionsByMinecraft: vi.fn(),
 }));
 
@@ -84,7 +83,6 @@ describe("api", () => {
     resetVersionCache();
     installer.getVersionList.mockReset();
     installer.getLoaderArtifactListFor.mockReset();
-    installer.getForgeVersionList.mockReset();
     installer.getQuiltLoaderVersionsByMinecraft.mockReset();
     installer.getVersionList.mockResolvedValue({
       versions: [
@@ -96,9 +94,6 @@ describe("api", () => {
       { loader: { version: "0.16.14", stable: true } },
       { loader: { version: "0.16.0", stable: false } },
     ]);
-    installer.getForgeVersionList.mockResolvedValue({
-      versions: [{ version: "51.0.33", type: "recommended" }],
-    });
     installer.getQuiltLoaderVersionsByMinecraft.mockResolvedValue([
       { loader: { version: "0.26.1", stable: true } },
     ]);
@@ -148,6 +143,29 @@ describe("api", () => {
       .field("path", "mods/example.jar")
       .attach("file", Buffer.from("hello-mod"), "example.jar");
     expect(uploaded.status).toBe(200);
+
+    const bare = await request(app)
+      .put("/minecraft/api/v1/admin/files")
+      .set("Authorization", `Bearer ${auth}`)
+      .field("path", "create-1.20.1-6.0.8.jar")
+      .attach("file", Buffer.from("create-mod"), "create-1.20.1-6.0.8.jar");
+    expect(bare.status).toBe(200);
+    expect(bare.body.path).toBe("mods/create-1.20.1-6.0.8.jar");
+    const stored = await request(app).get("/minecraft/api/v1/files/mods/create-1.20.1-6.0.8.jar");
+    expect(stored.status).toBe(200);
+    expect(stored.text).toBe("create-mod");
+    const listed = await request(app)
+      .get("/minecraft/api/v1/admin/mods")
+      .set("Authorization", `Bearer ${auth}`);
+    expect(listed.status).toBe(200);
+    expect(listed.body.mods).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          fileName: "create-1.20.1-6.0.8.jar",
+          path: "mods/create-1.20.1-6.0.8.jar",
+        }),
+      ])
+    );
 
     const file = await request(app).get("/minecraft/api/v1/files/mods/example.jar");
     expect(file.status).toBe(200);
@@ -333,6 +351,43 @@ describe("api", () => {
       .set("Authorization", `Bearer ${auth}`);
     expect(loaders.body.recommended).toBe("0.16.14");
     expect(loaders.body.versions).toEqual(["0.16.14", "0.16.0"]);
+  });
+
+  it("lists forge builds for the exact Minecraft version", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("maven-metadata.xml")) {
+        return new Response(
+          `<metadata><versioning><versions>
+            <version>1.21-51.0.33</version>
+            <version>1.21.1-52.1.0</version>
+            <version>1.21.1-52.1.16</version>
+            <version>1.21.10-55.0.1</version>
+          </versions></versioning></metadata>`,
+        );
+      }
+      return new Response(
+        JSON.stringify({
+          promos: {
+            "1.21.1-latest": "52.1.16",
+            "1.21.1-recommended": "52.1.0",
+          },
+        }),
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const auth = await token();
+      const loaders = await request(app)
+        .get("/minecraft/api/v1/admin/game/loaders")
+        .query({ mcVersion: "1.21.1", loader: "forge" })
+        .set("Authorization", `Bearer ${auth}`);
+      expect(loaders.status).toBe(200);
+      expect(loaders.body.versions).toEqual(["52.1.16", "52.1.0"]);
+      expect(loaders.body.recommended).toBe("52.1.0");
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("rejects an unknown version and does not replace a saved profile when lists fail", async () => {

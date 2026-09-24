@@ -41,6 +41,13 @@ export async function listGameFiles(
   };
 }
 
+/** A jar name with no directory is a manually added mod. */
+export function modJarPath(relativePath: string): string {
+  const normalized = relativePath.trim().replace(/\\/g, "/").replace(/^\/+/, "");
+  if (normalized.includes("/") || !normalized.toLowerCase().endsWith(".jar")) return normalized;
+  return `mods/${normalized}`;
+}
+
 export async function saveGameFile(
   config: AppConfig,
   relativePath: string,

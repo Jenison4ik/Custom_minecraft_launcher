@@ -40,13 +40,12 @@ export default function DownloadMcButton() {
   }, []);
 
   async function handleMcDownload() {
-    // Wait for download and update state
     await window.launcherAPI.downloadMinecraft();
-    setIsLaunch(true);
   }
 
   return (
     <button
+      type="button"
       onClick={handleMcDownload}
       disabled={isLaunch}
       className="launcher-restore"
