@@ -93,7 +93,7 @@ export function ModsCatalogDialog({
       }),
     onSuccess: async () => {
       toast.success("Мод добавлен");
-      await queryClient.invalidateQueries({ queryKey: ["files"] });
+      await queryClient.invalidateQueries({ queryKey: ["mods"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });

@@ -14,8 +14,15 @@ import { PackProfileSection } from "@/components/PackProfileSection";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { api } from "@/lib/api";
 
-type FileRow = { path: string; size: number };
-type FilePage = { total: number; limit: number; offset: number; files: FileRow[] };
+type ModRow = {
+  id: string;
+  name: string;
+  description: string;
+  fileName: string;
+  path: string;
+  iconDataUrl: string | null;
+};
+type ModPage = { total: number; limit: number; offset: number; mods: ModRow[] };
 type PendingFile = { key: string; file: File; path: string };
 
 const pageSize = 40;
@@ -28,12 +35,6 @@ function isJar(filePath: string): boolean {
   return filePath.trim().toLowerCase().endsWith(".jar");
 }
 
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 export function FilesPage() {
   const queryClient = useQueryClient();
   const [q, setQ] = useState("");
@@ -44,20 +45,20 @@ export function FilesPage() {
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   const files = useInfiniteQuery({
-    queryKey: ["files", search],
+    queryKey: ["mods", search],
     initialPageParam: 0,
     queryFn: ({ pageParam }) =>
-      api<FilePage>(
-        `/admin/files?q=${encodeURIComponent(search)}&limit=${pageSize}&offset=${pageParam}`,
+      api<ModPage>(
+        `/admin/mods?q=${encodeURIComponent(search)}&limit=${pageSize}&offset=${pageParam}`,
       ),
     getNextPageParam: (lastPage, pages) => {
-      const loaded = pages.reduce((count, page) => count + page.files.length, 0);
-      if (lastPage.files.length === 0 || loaded >= lastPage.total) return undefined;
+      const loaded = pages.reduce((count, page) => count + page.mods.length, 0);
+      if (lastPage.mods.length === 0 || loaded >= lastPage.total) return undefined;
       return loaded;
     },
   });
 
-  const rows = files.data?.pages.flatMap((page) => page.files) ?? [];
+  const rows = files.data?.pages.flatMap((page) => page.mods) ?? [];
   const total = files.data?.pages[0]?.total ?? 0;
   const sentinel = useInfiniteScroll(
     Boolean(files.hasNextPage && !files.isFetchingNextPage),
@@ -83,7 +84,7 @@ export function FilesPage() {
       toast.success(count === 1 ? "Файл сохранён" : `Сохранено файлов: ${count}`);
       setPending([]);
       setUploadKey((value) => value + 1);
-      await queryClient.invalidateQueries({ queryKey: ["files"] });
+      await queryClient.invalidateQueries({ queryKey: ["mods"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -94,7 +95,7 @@ export function FilesPage() {
     onSuccess: async () => {
       toast.success("Файл удалён");
       setPendingDelete(null);
-      await queryClient.invalidateQueries({ queryKey: ["files"] });
+      await queryClient.invalidateQueries({ queryKey: ["mods"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -125,7 +126,7 @@ export function FilesPage() {
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold tracking-tight">Сборка</h1>
           <p className="max-w-[65ch] text-sm text-muted-foreground">
-            Файлы сборки и моды. Новые .jar попадают в список сразу после загрузки.
+            Моды сборки. Новые .jar из папки mods попадают в список сразу после загрузки.
           </p>
         </div>
         <Button type="button" size="lg" onClick={() => setCatalogOpen(true)}>
@@ -179,7 +180,7 @@ export function FilesPage() {
 
       <section className="flex flex-col gap-4">
         <div className="flex items-end justify-between gap-4">
-          <h2 className="text-base font-medium">Файлы</h2>
+          <h2 className="text-base font-medium">Моды</h2>
           <p className="text-sm text-muted-foreground">{total}</p>
         </div>
         <form
@@ -193,7 +194,7 @@ export function FilesPage() {
           <Input
             id="file-search"
             value={q}
-            placeholder="mods/sodium"
+            placeholder="sodium"
             onChange={(event) => setQ(event.target.value)}
           />
         </form>
@@ -213,8 +214,8 @@ export function FilesPage() {
         {files.isSuccess && rows.length === 0 ? (
           <Empty>
             <EmptyHeader>
-              <EmptyTitle>Файлов нет</EmptyTitle>
-              <EmptyDescription>Загрузите .jar или добавьте мод из каталога.</EmptyDescription>
+              <EmptyTitle>Модов нет</EmptyTitle>
+              <EmptyDescription>Загрузите .jar в mods или добавьте мод из каталога.</EmptyDescription>
             </EmptyHeader>
           </Empty>
         ) : null}
@@ -222,12 +223,20 @@ export function FilesPage() {
           <ul className="grid gap-2">
             {rows.map((row) => (
               <li
-                key={row.path}
-                className="flex items-center gap-4 rounded-lg border bg-card px-4 py-3 [content-visibility:auto] [contain-intrinsic-size:auto_3.5rem]"
+                key={row.id}
+                className="flex items-center gap-4 rounded-lg border bg-card px-4 py-3"
               >
+                {row.iconDataUrl ? (
+                  <img src={row.iconDataUrl} alt="" className="size-10 shrink-0 rounded-md object-cover" />
+                ) : (
+                  <div className="size-10 shrink-0 rounded-md bg-muted" />
+                )}
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-mono text-sm">{row.path}</p>
-                  <p className="text-xs text-muted-foreground">{formatSize(row.size)}</p>
+                  <p className="truncate text-sm font-medium">{row.name}</p>
+                  {row.description ? (
+                    <p className="line-clamp-2 text-sm text-muted-foreground">{row.description}</p>
+                  ) : null}
+                  <p className="truncate text-xs text-muted-foreground">{row.fileName}</p>
                 </div>
                 <Button type="button" variant="destructive" size="sm" onClick={() => setPendingDelete(row.path)}>
                   Удалить

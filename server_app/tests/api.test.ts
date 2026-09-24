@@ -2,6 +2,8 @@ import crypto from "crypto";
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
+import { PassThrough } from "node:stream";
+import archiver from "archiver";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 import type { Express } from "express";
@@ -365,7 +367,166 @@ describe("api", () => {
     const still = await request(app).get("/minecraft/api/v1/profile");
     expect(still.body.loader).toBe("vanilla");
   });
+
+  it("lists parsed mods and keeps an unreadable jar as a filename", async () => {
+    const auth = await token();
+    const png = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+      "base64"
+    );
+    const fabric = await zipOf({
+      "fabric.mod.json": JSON.stringify({
+        schemaVersion: 1,
+        id: "example",
+        version: "1.0.0",
+        name: "Example Mod",
+        description: "A short description",
+        icon: "assets/example/icon.png",
+      }),
+      "assets/example/icon.png": png,
+    });
+    const forge = await zipOf({
+      "META-INF/mods.toml": `
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+
+[[mods]]
+modId="alpha"
+version="1.0"
+displayName="Alpha Mod"
+description="First forge mod"
+
+[[mods]]
+modId="beta"
+version="1.0"
+displayName="Beta Mod"
+description="Second forge mod"
+logoFile="logo.png"
+`,
+      "logo.png": png,
+    });
+
+    const uploadedFabric = await request(app)
+      .put("/minecraft/api/v1/admin/files")
+      .set("Authorization", `Bearer ${auth}`)
+      .field("path", "mods/example-mod.jar")
+      .attach("file", fabric, "example-mod.jar");
+    expect(uploadedFabric.status).toBe(200);
+
+    const uploadedForge = await request(app)
+      .put("/minecraft/api/v1/admin/files")
+      .set("Authorization", `Bearer ${auth}`)
+      .field("path", "mods/nested/forge-pack.jar")
+      .attach("file", forge, "forge-pack.jar");
+    expect(uploadedForge.status).toBe(200);
+
+    const uploadedBroken = await request(app)
+      .put("/minecraft/api/v1/admin/files")
+      .set("Authorization", `Bearer ${auth}`)
+      .field("path", "mods/broken.jar")
+      .attach("file", Buffer.from("not-a-zip"), "broken.jar");
+    expect(uploadedBroken.status).toBe(200);
+
+    const uploadedElsewhere = await request(app)
+      .put("/minecraft/api/v1/admin/files")
+      .set("Authorization", `Bearer ${auth}`)
+      .field("path", "config/other.jar")
+      .attach("file", fabric, "other.jar");
+    expect(uploadedElsewhere.status).toBe(200);
+
+    const manifestPath = path.join(config.dataDir, "manifest.json");
+    const manifest = JSON.parse(await fs.readFile(manifestPath, "utf-8")) as {
+      files: Record<string, { sha1: string; size: number }>;
+    };
+    manifest.files["mods/hidden.jar.disabled"] = { sha1: "disabled", size: 1 };
+    await fs.writeFile(manifestPath, JSON.stringify(manifest));
+
+    const page = await request(app)
+      .get("/minecraft/api/v1/admin/mods")
+      .set("Authorization", `Bearer ${auth}`);
+    expect(page.status).toBe(200);
+
+    const mods = page.body.mods as {
+      id: string;
+      name: string;
+      description: string;
+      fileName: string;
+      path: string;
+      iconDataUrl: string | null;
+    }[];
+    const example = mods.find((mod) => mod.path === "mods/example-mod.jar");
+    expect(example).toMatchObject({
+      id: "mods/example-mod.jar#example",
+      name: "Example Mod",
+      description: "A short description",
+      fileName: "example-mod.jar",
+    });
+    expect(example?.iconDataUrl?.startsWith("data:image/png;base64,")).toBe(true);
+
+    const forgeMods = mods.filter((mod) => mod.path === "mods/nested/forge-pack.jar");
+    expect(forgeMods).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "mods/nested/forge-pack.jar#alpha",
+          name: "Alpha Mod",
+          description: "First forge mod",
+          fileName: "forge-pack.jar",
+          iconDataUrl: null,
+        }),
+        expect.objectContaining({
+          id: "mods/nested/forge-pack.jar#beta",
+          name: "Beta Mod",
+          description: "Second forge mod",
+          fileName: "forge-pack.jar",
+        }),
+      ])
+    );
+    expect(forgeMods.find((mod) => mod.name === "Beta Mod")?.iconDataUrl?.startsWith("data:image/png;base64,")).toBe(
+      true
+    );
+
+    expect(mods).toContainEqual(
+      expect.objectContaining({
+        id: "mods/broken.jar#0",
+        name: "broken.jar",
+        description: "",
+        fileName: "broken.jar",
+        path: "mods/broken.jar",
+        iconDataUrl: null,
+      })
+    );
+    expect(mods.some((mod) => mod.path === "config/other.jar" || mod.fileName === "hidden.jar.disabled")).toBe(false);
+
+    const found = await request(app)
+      .get("/minecraft/api/v1/admin/mods")
+      .query({ q: "short description" })
+      .set("Authorization", `Bearer ${auth}`);
+    expect(found.body.mods.map((mod: { name: string }) => mod.name)).toEqual(["Example Mod"]);
+
+    const again = await request(app)
+      .get("/minecraft/api/v1/admin/mods")
+      .query({ q: "Example Mod" })
+      .set("Authorization", `Bearer ${auth}`);
+    expect(again.body.mods[0].iconDataUrl).toBe(example?.iconDataUrl);
+  });
 });
+
+function zipOf(entries: Record<string, Buffer | string>): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const archive = archiver("zip", { zlib: { level: 9 } });
+    const stream = new PassThrough();
+    const chunks: Buffer[] = [];
+    stream.on("data", (chunk: Buffer) => chunks.push(chunk));
+    stream.on("end", () => resolve(Buffer.concat(chunks)));
+    archive.on("error", reject);
+    archive.pipe(stream);
+    for (const [name, data] of Object.entries(entries)) {
+      archive.append(data, { name });
+    }
+    void archive.finalize();
+  });
+}
 
 function binaryParser(res: NodeJS.ReadableStream, callback: (err: Error | null, body: Buffer) => void) {
   const chunks: Buffer[] = [];
