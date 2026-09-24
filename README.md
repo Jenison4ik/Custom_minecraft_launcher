@@ -2,8 +2,23 @@
 
 # Custom MC Launcher
 
-![Stars](https://img.shields.io/github/stars/Jenison4ik/Custom_minecraft_launcher)
-![License](https://img.shields.io/badge/license-MIT-green)
+![Stars](https://img.shields.io/github/stars/Jenison4ik/Custom_minecraft_launcher?style=for-the-badge&logo=github)
+![Forks](https://img.shields.io/github/forks/Jenison4ik/Custom_minecraft_launcher?style=for-the-badge&logo=github)
+![License](https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-1.7.0-111827?style=for-the-badge)
+![Node](https://img.shields.io/badge/Node.js-20+-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Electron](https://img.shields.io/badge/Electron-31-47848F?style=for-the-badge&logo=electron&logoColor=white)
+![React](https://img.shields.io/badge/React-18-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=FFD62E)
+![Windows](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)
+![macOS](https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=white)
+![Minecraft](https://img.shields.io/badge/Minecraft-Java-3D7A2A?style=for-the-badge)
+![Fabric](https://img.shields.io/badge/Fabric-DBD0B4?style=for-the-badge&logoColor=black)
+![Forge](https://img.shields.io/badge/Forge-DEA42A?style=for-the-badge)
+![Quilt](https://img.shields.io/badge/Quilt-6B4BA1?style=for-the-badge)
+![NeoForge](https://img.shields.io/badge/NeoForge-E67E22?style=for-the-badge)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
 Свой лаунчер для Minecraft проектов и серверов с модами. Игрок вводит ник и нажимает «Запустить» лаунчер полностью берёт управление на себя: ставит игру, нужную Java, модлоадер и всю сборку. Игрокам теперь больше не надо ничего устанавливать руками
 
