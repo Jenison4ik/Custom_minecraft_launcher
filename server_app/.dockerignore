@@ -1,0 +1,5 @@
+node_modules
+admin/node_modules
+dist
+admin/dist
+.git

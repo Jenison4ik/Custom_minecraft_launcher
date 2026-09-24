@@ -6,65 +6,68 @@
 */
 
 :root {
-  /* Цвета */
-  --color-bg: #191a19; /* фон страницы */
-  --color-surface: #1d1d1d; /* нижняя панель, подсказка чекбокса */
-  --color-text: #e0e0e0; /* заголовки, граница панели */
-  --color-muted: #777e87; /* подписи, поле ника, память */
-  --color-accent: #4e9f3d; /* кнопка «Запустить» */
-  --color-accent-deep: #1e5128; /* градиент фона, тень кнопки запуска */
-  --color-control: #363636; /* кнопки-иконки и «Восстановить» */
-  --color-control-hover: #33363d; /* наведение на кнопки и поля */
-  --color-control-active: #636363; /* нажатие кнопки-иконки */
-  --color-field: #33363d; /* ник и число памяти */
-  --color-focus: #d8e9a8; /* обводка фокуса */
-  --color-launch-text: #fff;
-  --color-ram-border: #a1a1a1;
-  --color-download-bg: rgb(231, 231, 231);
-  --color-download-progress: rgb(88, 255, 91);
-  --color-download-text: #333;
-  --color-download-shine: #fff;
-  --color-toast-error-text: rgb(255, 198, 198);
-  --color-toast-error-bg: rgb(158, 82, 82);
-  --color-toast-notice-text: rgb(151, 236, 158);
-  --color-toast-notice-bg: rgb(39, 126, 46);
-  --color-shadow: #686868;
-  --color-shadow-soft: #888888;
-  --color-title-outline: #000;
+  /* Нейтральный тёмный интерфейс. Зелёный только как акцент. */
+  --color-bg: #0c0d10; /* фон */
+  --color-surface: #16181d; /* панели и секции */
+  --color-text: #f2f4f7; /* основной текст */
+  --color-muted: #9399a6; /* подписи */
+  --color-accent: #3dce8a; /* запуск, ползунок, переключатели */
+  --color-accent-deep: #14915a; /* тёмный оттенок акцента */
+  --color-accent-hover: #67dba4; /* наведение на кнопку запуска */
+  --color-control: #23262d; /* тихие кнопки */
+  --color-control-hover: #2d313a;
+  --color-control-active: #383d48;
+  --color-field: #0e1014; /* поля ввода */
+  --color-focus: #3dce8a; /* кольцо фокуса */
+  --color-line: #2a2e36; /* границы */
+  --color-scrollbar: #3a404c; /* ползунок */
+  --color-scrollbar-hover: #565d6b; /* ползунок при наведении */
+  --color-scrollbar-track: transparent; /* дорожка */
+  --scrollbar-size: 10px;
+  --color-launch-text: #062014; /* текст на акцентной кнопке */
+  --color-ram-border: #2a2e36;
+  --color-download-bg: #12141a;
+  --color-download-progress: #3dce8a;
+  --color-download-text: #f2f4f7;
+  --color-download-shine: rgb(255 255 255 / 0.28);
+  --color-toast-error-text: #ffd0d4;
+  --color-toast-error-bg: #2a171b;
+  --color-toast-notice-text: #d5f6e4;
+  --color-toast-notice-bg: #13241c;
 
-  /* Шрифты */
-  --font-display: "FontOver", sans-serif; /* заголовки и кнопка запуска */
-  --font-ui: Arial, Helvetica, sans-serif; /* поля ввода */
-  --font-body: "Roboto", sans-serif;
+  /* Шрифты. FontOver подключён в base.css, его можно поставить сюда. */
+  --font-display: "Segoe UI Variable Display", "Segoe UI", sans-serif;
+  --font-ui: "Segoe UI Variable Text", "Segoe UI", sans-serif;
+  --font-body: "Segoe UI Variable Text", "Segoe UI", sans-serif;
   --font-size: 16px;
-  --font-size-title: 1rem;
-  --font-size-settings-title: 2rem;
-  --font-size-nick: 1.2rem;
-  --font-size-toast-title: 1.2rem;
-  --font-size-download: 14px;
+  --font-size-title: 1.5rem;
+  --font-size-settings-title: 1.25rem;
+  --font-size-nick: 1rem;
+  --font-size-toast-title: 0.95rem;
+  --font-size-download: 13px;
 
-  /* Форма */
-  --radius-control: 5px;
-  --radius-field: 15px;
-  --radius-ram: 4px;
-  --radius-toast: 10px;
-  --radius-download: 5px 5px 0 0;
-  --shadow-title: -1px -1px 0 var(--color-title-outline),
-    1px -1px 0 var(--color-title-outline),
-    -1px 1px 0 var(--color-title-outline), 1px 1px 0 var(--color-title-outline);
-  --shadow-icon: 0px 5px 7px var(--color-shadow);
-  --shadow-launch: 0 10px var(--color-accent-deep);
-  --shadow-launch-hover: 0 10px var(--color-accent);
-  --shadow-launch-active: 0 3px var(--color-accent-deep),
-    0px 6px 6px var(--color-shadow-soft), 0 -2px 10px var(--color-shadow-soft);
+  /* Скругление контролов. Переключатель остаётся капсулой. */
+  --radius-control: 8px;
+  --radius-field: 8px;
+  --radius-ram: 8px;
+  --radius-toast: 12px;
+  --radius-download: 0;
+  --radius-switch: 999px;
+  --shadow-launch:
+    inset 0 1px 0 rgb(255 255 255 / 0.28),
+    0 8px 18px color-mix(in srgb, var(--color-accent) 34%, transparent);
+  --shadow-launch-hover:
+    inset 0 1px 0 rgb(255 255 255 / 0.34),
+    0 10px 22px color-mix(in srgb, var(--color-accent) 46%, transparent);
+  --shadow-launch-active: 0 4px 10px color-mix(in srgb, var(--color-accent) 24%, transparent);
 
-  /* Отступы и размер панели */
-  --page-padding: 20px;
-  --stack-gap: 10px;
-  --controls-height: 80px;
+  /* Отступы и нижняя панель */
+  --page-padding: 28px 32px;
+  --stack-gap: 12px;
+  --controls-height: 64px;
   --controls-gap: 10px;
-  --controls-padding: 10px 20px;
-  --controls-columns: 1fr 1fr 1fr;
+  --controls-padding: 12px 16px;
+  --controls-columns: auto auto 1fr;
 }
 
 /*

@@ -1,7 +1,7 @@
 {
-  "name": "jenison-launcher",
-  "version": "1.6.6",
-  "description": "Jenison Launcher",
+  "name": "custom-minecraft-launcher",
+  "version": "1.7.0",
+  "description": "Custom Minecraft Launcher",
   "main": "dist/main/index.js",
   "scripts": {
     "dev": "concurrently -k -n shared,main,preload,renderer,electron -c cyan,green,yellow,magenta,blue \"npm:dev:shared\" \"npm:dev:main\" \"npm:dev:preload\" \"npm:dev:renderer\" \"npm:start\"",
@@ -38,6 +38,7 @@
     "wait-on": "^8.0.4"
   },
   "dependencies": {
+    "@base-ui/react": "^1.8.0",
     "@jenison/shared": "file:packages/shared",
     "@xmcl/core": "^2.15.1",
     "@xmcl/installer": "^6.1.2",
@@ -48,11 +49,11 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.9.1",
-    "undici": "^4.16.0"
+    "undici": "7.2.3"
   },
   "build": {
-    "appId": "ru.jenison",
-    "productName": "Jenison Launcher",
+    "appId": "ru.jenison.cml",
+    "productName": "Custom Minecraft Launcher",
     "directories": {
       "output": "out"
     },
@@ -65,7 +66,7 @@
     "publish": [
       {
         "provider": "generic",
-        "url": "https://jenison.ru/"
+        "url": "https://cml.jenison.ru/"
       }
     ],
     "files": [

@@ -1,4 +1,4 @@
-import { sendDownloadStatus } from "../services/notifyService";
+import { byteProgress, sendPhase } from "../services/notifyService";
 import fs from "fs";
 import path from "path";
 import axios from "axios";
@@ -15,7 +15,7 @@ export default async function downloadMinecraft() {
 
     const zipPath = path.join(BASE_DIR, "minecraft.zip");
 
-    sendDownloadStatus("Waiting for download...", 0, true);
+    sendPhase("Waiting for download...");
 
     const response = await axios.get(launcherProperties.url + "/download", {
       responseType: "stream",
@@ -35,36 +35,21 @@ export default async function downloadMinecraft() {
 
     response.data.on("data", (chunk: Buffer) => {
       loaded += chunk.length;
-      if (total) {
-        const percent = Math.round((loaded * 100) / total);
-        sendDownloadStatus(
-          `Downloading Minecraft: ${Math.floor(loaded / 1048576)} MB of ${Math.floor(total / 1048576)} MB`,
-          percent,
-          true
-        );
-      }
+      byteProgress("Downloading Minecraft", loaded, total);
     });
 
     await pipeline(response.data, writer); // correctly write the stream to disk
 
-    sendDownloadStatus(
-      "Download complete, preparing directory...",
-      100,
-      true
-    );
+    sendPhase("Download complete, preparing directory...");
     fs.rmSync(path.join(BASE_DIR, "mods"), { recursive: true, force: true }); // remove old mods folder if present
 
-    sendDownloadStatus(
-      "Download complete, extracting Minecraft...",
-      100,
-      true
-    );
+    sendPhase("Download complete, extracting Minecraft...");
     // Extract archive
     await extract(zipPath, { dir: BASE_DIR });
 
-    sendDownloadStatus("Minecraft extracted successfully", 100, false);
+    sendPhase("Minecraft extracted successfully", false);
   } catch (e) {
-    sendDownloadStatus("Error downloading Minecraft: " + e, 0, false);
+    sendPhase("Error downloading Minecraft: " + e, false);
     throw e;
   }
 }

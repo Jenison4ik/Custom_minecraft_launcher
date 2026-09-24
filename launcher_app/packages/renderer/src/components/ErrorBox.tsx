@@ -9,7 +9,7 @@ export default function ErrorBox({ message, isFade, type }: ErrorBoxProps) {
       className={`launcher-toast ${type === "error" ? "launcher-toast--error" : "launcher-toast--notice"}${isFade ? " launcher-toast--fade" : ""}`}
     >
       <h2 className="launcher-subtitle">
-        {type === "error" ? "Error occurred" : "Notification!"}
+        {type === "error" ? "Ошибка" : "Сообщение"}
       </h2>
       <p>{message}</p>
     </div>

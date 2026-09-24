@@ -1,10 +1,17 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { CHANNELS } from "@jenison/shared";
-import type { ConfigEntry, ErrorToastType, LauncherAPI } from "@jenison/shared";
+import type {
+  ConfigEntry,
+  DownloadStatus,
+  ErrorToastType,
+  LauncherAPI,
+} from "@jenison/shared";
 
 const launcherAPI: LauncherAPI = {
   getConfigs: () => ipcRenderer.invoke(CHANNELS.getConfigs),
   runMinecraft: () => ipcRenderer.invoke(CHANNELS.runMinecraft),
+  stopMinecraft: () => ipcRenderer.invoke(CHANNELS.stopMinecraft),
+  canStopMinecraft: () => ipcRenderer.invoke(CHANNELS.canStopMinecraft),
   openLauncherDir: () => ipcRenderer.invoke(CHANNELS.openLauncherDir),
   addToConfigs: (params: ConfigEntry[]) =>
     ipcRenderer.invoke(CHANNELS.addToConfigs, params),
@@ -14,22 +21,27 @@ const launcherAPI: LauncherAPI = {
       callback(message, type)
     );
   },
-  onDownloadStatus: (
-    callback: (
-      message: string,
-      progress: number,
-      isDownloading: boolean
-    ) => void
-  ) => {
-    ipcRenderer.on(
-      CHANNELS.showDownloadStatus,
-      (_event, message, progress, isDownloading) =>
-        callback(message, progress, isDownloading)
-    );
-  },
-  onMinecraft: (callback: (status: boolean) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, status: boolean) => {
+  onDownloadStatus: (callback: (status: DownloadStatus) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      status: DownloadStatus
+    ) => {
       callback(status);
+    };
+
+    ipcRenderer.on(CHANNELS.showDownloadStatus, listener);
+
+    return () => {
+      ipcRenderer.removeListener(CHANNELS.showDownloadStatus, listener);
+    };
+  },
+  onMinecraft: (callback: (status: boolean, canStop?: boolean) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      status: boolean,
+      canStop?: boolean
+    ) => {
+      callback(status, canStop);
     };
 
     ipcRenderer.on(CHANNELS.launchMinecraft, listener);

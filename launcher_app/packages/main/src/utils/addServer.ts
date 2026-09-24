@@ -4,7 +4,7 @@ import { app } from "electron";
 import { mcPath } from "../services/paths";
 import fs from "fs";
 import { sendError } from "../services/notifyService";
-import launcherProperties from "../config/launcherProperties";
+import type { ProfileServer } from "../minecraft/profileClient";
 
 interface NBTTag<TType extends string, TValue> {
   type: TType;
@@ -19,7 +19,7 @@ export interface NBTServerEntry {
   hidden?: NBTTag<"byte", number>;
 }
 
-export default async function addServer() {
+export default async function addServer(servers: ProfileServer[] = []) {
   try {
     const servers_path = path.join(
       app.getPath("userData"),
@@ -56,7 +56,7 @@ export default async function addServer() {
     };
 
     const serversList = data.servers.value.value;
-    const serversConfig = launcherProperties.servers ?? [];
+    const serversConfig = servers;
     for (const server of serversConfig) {
       const exists = serversList.some((s) => s.ip.value === server.ip);
       if (!exists) {

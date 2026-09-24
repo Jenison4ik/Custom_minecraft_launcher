@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from "react";
 import type { LauncherInfo } from "@jenison/shared";
+import { Checkbox } from "@base-ui/react/checkbox";
+import { Select } from "@base-ui/react/select";
+import { Switch } from "@base-ui/react/switch";
 import InputRange from "../components/inputRam";
 import DownloadMcButton from "../components/DownloadMcButton";
 
@@ -44,6 +47,32 @@ function presetId(width: number, height: number): string {
     (preset) => preset.width === width && preset.height === height
   );
   return found ? found.id : "custom";
+}
+
+function ToggleRow({
+  id,
+  checked,
+  onCheckedChange,
+  children,
+}: {
+  id: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="launcher-check">
+      <Switch.Root
+        id={id}
+        className="launcher-switch"
+        checked={checked}
+        onCheckedChange={onCheckedChange}
+      >
+        <Switch.Thumb className="launcher-switch-thumb" />
+      </Switch.Root>
+      <span className="launcher-check-label">{children}</span>
+    </label>
+  );
 }
 
 export default function Settings({
@@ -100,10 +129,6 @@ export default function Settings({
     });
   }
 
-  const handleCheckboxChange = async (checked: boolean) => {
-    await save([{ name: "disableDownload", value: checked }]);
-  };
-
   return (
     <main className="launcher-page launcher-page--settings">
       <h1 className="launcher-title">Настройки</h1>
@@ -111,7 +136,7 @@ export default function Settings({
       <section className="launcher-settings-section launcher-settings-pack">
         <h2 className="launcher-subtitle">Сборка</h2>
         <p className="launcher-settings-line">
-          Minecraft {info?.mcVersion ?? "…"}
+          Minecraft {info?.mcVersion || "не задана"}
           {info ? `, ${info.loader}` : ""}
           {info?.loaderVersion ? ` ${info.loaderVersion}` : ""}
         </p>
@@ -119,7 +144,7 @@ export default function Settings({
           <ul className="launcher-settings-list">
             {info.servers.map((server) => (
               <li key={`${server.lable}-${server.ip}`}>
-                {server.lable} — {server.ip}
+                {server.lable} - {server.ip}
               </li>
             ))}
           </ul>
@@ -131,20 +156,19 @@ export default function Settings({
         <InputRange
           defVal={localRam}
           maxVal={totalmem}
-          onChange={(v) => setLocalRam(v)}
-          onCommit={(v) => onChange(v)}
+          onChange={(value) => setLocalRam(value)}
+          onCommit={(value) => onChange(value)}
         />
       </section>
 
       <section className="launcher-settings-section launcher-settings-window">
         <h2 className="launcher-subtitle">Окно игры</h2>
-        <label className="launcher-settings-field">
-          Разрешение
-          <select
-            className="launcher-settings-input"
+        <div className="launcher-settings-field">
+          <label htmlFor="launcher-resolution">Разрешение</label>
+          <Select.Root
             value={resolutionPreset}
-            onChange={(event) => {
-              const next = event.target.value;
+            onValueChange={(next) => {
+              if (next == null) return;
               setResolutionPreset(next);
               const preset = PRESETS.find((item) => item.id === next);
               if (!preset) return;
@@ -156,14 +180,45 @@ export default function Settings({
               ]);
             }}
           >
-            {PRESETS.map((preset) => (
-              <option key={preset.id} value={preset.id}>
-                {preset.label}
-              </option>
-            ))}
-            <option value="custom">Своё</option>
-          </select>
-        </label>
+            <Select.Trigger
+              id="launcher-resolution"
+              className="launcher-settings-input launcher-select-trigger"
+            >
+              <Select.Value />
+              <Select.Icon className="launcher-select-icon">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path
+                    d="M4 6.5 8 10.5 12 6.5"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </Select.Icon>
+            </Select.Trigger>
+            <Select.Portal>
+              <Select.Positioner className="launcher-select-positioner" sideOffset={6}>
+                <Select.Popup className="launcher-select-content">
+                  <Select.List>
+                    {PRESETS.map((preset) => (
+                      <Select.Item
+                        key={preset.id}
+                        className="launcher-select-item"
+                        value={preset.id}
+                      >
+                        <Select.ItemText>{preset.label}</Select.ItemText>
+                      </Select.Item>
+                    ))}
+                    <Select.Item className="launcher-select-item" value="custom">
+                      <Select.ItemText>Своё</Select.ItemText>
+                    </Select.Item>
+                  </Select.List>
+                </Select.Popup>
+              </Select.Positioner>
+            </Select.Portal>
+          </Select.Root>
+        </div>
         {resolutionPreset === "custom" && (
           <div className="launcher-settings-row">
             <label className="launcher-settings-field">
@@ -198,34 +253,28 @@ export default function Settings({
             </label>
           </div>
         )}
-        <label className="launcher-check">
-          <input
-            className="launcher-check-input"
-            type="checkbox"
-            checked={configs.fullscreen === true}
-            onChange={(event) => {
-              void save([{ name: "fullscreen", value: event.target.checked }]);
-            }}
-          />
+        <ToggleRow
+          id="launcher-fullscreen"
+          checked={configs.fullscreen === true}
+          onCheckedChange={(checked) => {
+            void save([{ name: "fullscreen", value: checked }]);
+          }}
+        >
           Полный экран
-        </label>
+        </ToggleRow>
       </section>
 
       <section className="launcher-settings-section launcher-settings-launch">
         <h2 className="launcher-subtitle">Запуск</h2>
-        <label className="launcher-check">
-          <input
-            className="launcher-check-input"
-            type="checkbox"
-            checked={configs.closeOnLaunch === true}
-            onChange={(event) => {
-              void save([
-                { name: "closeOnLaunch", value: event.target.checked },
-              ]);
-            }}
-          />
+        <ToggleRow
+          id="launcher-close-on-launch"
+          checked={configs.closeOnLaunch === true}
+          onCheckedChange={(checked) => {
+            void save([{ name: "closeOnLaunch", value: checked }]);
+          }}
+        >
           Закрывать лаунчер после старта игры
-        </label>
+        </ToggleRow>
         <p className="launcher-settings-hint">
           Окно спрячется на время игры и откроется снова, когда она закроется.
         </p>
@@ -269,7 +318,7 @@ export default function Settings({
           <textarea
             className="launcher-settings-input launcher-settings-jvm"
             value={jvmArgs}
-            placeholder={"Один аргумент на строку"}
+            placeholder="Один аргумент на строку"
             onChange={(event) => setJvmArgs(event.target.value)}
             onBlur={() => {
               void save([{ name: "jvmArgs", value: jvmArgs }]);
@@ -284,15 +333,21 @@ export default function Settings({
       <section className="launcher-settings-section launcher-settings-files">
         <h2 className="launcher-subtitle">Файлы</h2>
         <label className="launcher-check">
-          <input
+          <Checkbox.Root
+            id="launcher-disable-download"
             className="launcher-check-input"
-            type="checkbox"
             checked={(configs.disableDownload as boolean) ?? false}
-            onChange={(e) => handleCheckboxChange(e.target.checked)}
-          />
-          Отключить проверку игровых файлов{" "}
-          <span className="launcher-check-hint">Не рекомендуется</span>
+            onCheckedChange={(checked) => {
+              void save([{ name: "disableDownload", value: checked === true }]);
+            }}
+          >
+            <Checkbox.Indicator className="launcher-check-mark" />
+          </Checkbox.Root>
+          <span className="launcher-check-label">
+            Отключить проверку игровых файлов
+          </span>
         </label>
+        <p className="launcher-check-hint">Не рекомендуется</p>
         <div className="launcher-settings-actions">
           <DownloadMcButton />
           <button

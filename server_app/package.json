@@ -6,28 +6,42 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "ts-node index.ts",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
     "docker:build": "docker build -t server_mc .",
-    "docker:run": "docker run -d --env-file .env -p $(grep PORT .env | cut -d '=' -f2):$(grep PORT .env | cut -d '=' -f2) --name server_mc_container server_mc"
+    "docker:run": "docker run -d --env-file .env -p $(grep PORT .env | cut -d '=' -f2):$(grep PORT .env | cut -d '=' -f2) --name server_mc_container server_mc",
+    "docker:dev": "docker compose --env-file .env -f docker-compose.local.yml up --build "
   },
   "author": "Evgenii Solovev",
   "type": "module",
   "license": "MIT",
   "dependencies": {
+    "@xmcl/curseforge": "^2.2.2",
+    "@xmcl/installer": "^6.1.2",
+    "@xmcl/mod-parser": "3.4.0",
+    "@xmcl/modrinth": "^2.5.3",
+    "@xmcl/system": "2.2.8",
     "archiver": "^7.0.1",
     "crypto": "^1.0.1",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "extract-zip": "^2.0.1",
     "fs-extra": "^11.3.1",
+    "jose": "^6.2.12",
     "multer": "^2.0.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/archiver": "^6.0.3",
     "@types/express": "^5.0.3",
     "@types/fs-extra": "^11.0.4",
     "@types/multer": "^2.0.0",
     "@types/node": "^24.3.0",
-    "typescript": "^5.9.2"
+    "@types/supertest": "^7.2.1",
+    "supertest": "^7.3.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.2",
+    "vitest": "^5.0.1"
   }
 }

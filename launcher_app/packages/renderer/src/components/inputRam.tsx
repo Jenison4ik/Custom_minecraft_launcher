@@ -1,75 +1,79 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Slider } from "@base-ui/react/slider";
 
 interface InputRangeProps {
   maxVal: number;
-  inputRef?: React.Ref<HTMLInputElement>;
   defVal: number;
-  onChange: (e: number) => void;
-  onCommit?: (e: number) => void;
+  onChange: (value: number) => void;
+  onCommit?: (value: number) => void;
 }
+
 export default function InputRange({
   maxVal,
-  inputRef,
   defVal,
   onChange,
   onCommit,
 }: InputRangeProps) {
+  const minVal = maxVal < 2048 ? Math.max(1, Math.floor(maxVal * 0.5)) : 2048;
+  const safeMax = Math.max(maxVal, minVal);
   const [val, setVal] = useState(defVal.toString());
 
-  const minVal = maxVal < 2048 ? Math.floor(maxVal * 0.5) : 2048;
+  useEffect(() => {
+    setVal(defVal.toString());
+  }, [defVal]);
+
+  const numeric = Number.parseInt(val, 10);
+  const sliderValue = Number.isFinite(numeric)
+    ? Math.min(safeMax, Math.max(minVal, numeric))
+    : minVal;
+
+  function commit(next: number) {
+    const clamped = Math.min(safeMax, Math.max(minVal, next));
+    setVal(String(clamped));
+    onCommit?.(clamped);
+  }
+
+  function readSlider(value: number | readonly number[]) {
+    return typeof value === "number" ? value : value[0];
+  }
+
   return (
     <div className="launcher-ram">
-      <input
+      <Slider.Root
         className="launcher-ram-slider"
-        ref={inputRef}
-        type="range"
         min={minVal}
-        max={maxVal}
-        value={val}
-        step="1"
-        onChange={(e) => {
-          setVal(e.target.value);
-          onChange(e.target.valueAsNumber);
+        max={safeMax}
+        step={1}
+        disabled={maxVal <= 0}
+        value={sliderValue}
+        onValueChange={(value) => {
+          const next = readSlider(value);
+          setVal(String(next));
+          onChange(next);
         }}
-        onMouseUp={() => {
-          const value = parseInt(val, 10);
-          onCommit?.(isNaN(value) ? minVal : value);
-        }}
-        onTouchEnd={() => {
-          const value = parseInt(val, 10);
-          onCommit?.(isNaN(value) ? minVal : value);
-        }}
-      />
+        onValueCommitted={(value) => commit(readSlider(value))}
+      >
+        <Slider.Control className="launcher-ram-control">
+          <Slider.Track className="launcher-ram-track">
+            <Slider.Indicator className="launcher-ram-range" />
+            <Slider.Thumb className="launcher-ram-thumb" aria-label="Оперативная память" />
+          </Slider.Track>
+        </Slider.Control>
+      </Slider.Root>
       <div className="launcher-ram-fields">
         <input
           className="launcher-ram-value"
           type="text"
-          min={minVal}
-          max={maxVal}
+          inputMode="numeric"
           value={val}
-          step="1"
-          onChange={(e) => {
-            let target = e.target.value;
-
-            target = target.replace(/\D/g, "");
-
-            if (target.length > 0) {
-              target = String(parseInt(target, 10));
-            }
-            setVal(target);
+          aria-label="Память в мегабайтах"
+          onChange={(event) => {
+            const digits = event.target.value.replace(/\D/g, "");
+            setVal(digits.length > 0 ? String(Number.parseInt(digits, 10)) : "");
           }}
-          onBlur={(e) => {
-            const value = parseInt(val, 10);
-            if (value < minVal || isNaN(value)) {
-              setVal(minVal.toString());
-              onCommit?.(minVal);
-              return;
-            } else if (value > maxVal) {
-              setVal(maxVal.toString());
-              onCommit?.(maxVal);
-              return;
-            }
-            onCommit?.(value);
+          onBlur={() => {
+            const parsed = Number.parseInt(val, 10);
+            commit(Number.isNaN(parsed) ? minVal : parsed);
           }}
         />
         <p className="launcher-ram-unit">MB</p>

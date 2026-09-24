@@ -1,26 +1,25 @@
-# Используем базовый образ с Node.js
-FROM node:18
+# syntax=docker/dockerfile:1
+FROM node:22
 
-# Устанавливаем рабочую директорию внутри контейнера
 WORKDIR /app
 
-# Копируем package.json и package-lock.json для установки зависимостей
-COPY package*.json ./
+# Зависимости API и панели ставятся отдельными слоями.
+# Пока не меняются package.json и lock-файлы, npm не запускается заново.
+COPY package.json package-lock.json ./
+COPY admin/package.json admin/package-lock.json admin/
 
-# Устанавливаем зависимости
-RUN npm install
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
 
-# Копируем весь проект в контейнер
+RUN --mount=type=cache,target=/root/.npm \
+    npm --prefix admin ci
+
 COPY . .
 
-# Сборка TypeScript в JavaScript
-RUN npm run build
+RUN npm run build && npm --prefix admin run build
 
-# Указываем переменные окружения
 ENV NODE_ENV=production
 
-# Указываем порт, который будет использовать приложение
 EXPOSE ${PORT:-8080}
 
-# Указываем команду для запуска приложения
 CMD ["npm", "run", "start"]

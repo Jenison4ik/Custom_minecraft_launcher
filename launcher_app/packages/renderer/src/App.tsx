@@ -1,6 +1,6 @@
-import React from "react";
 import { HashRouter, Routes, Route } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { Tooltip } from "@base-ui/react/tooltip";
 import Home from "./pages/Home";
 import Settings from "./pages/Settings";
 import Layout from "./components/Layout";
@@ -35,10 +35,11 @@ function App() {
   }, []);
 
   if (!configs) {
-    return <div>Загрузка...</div>;
+    return <div className="launcher-loading">Загрузка</div>;
   }
 
   return (
+    <Tooltip.Provider delay={300}>
     <HashRouter>
       <Routes>
         <Route path="/" element={<Home />} />
@@ -57,6 +58,7 @@ function App() {
       </Routes>
       <Layout configs={configs} usingmem={usingMem} />
     </HashRouter>
+    </Tooltip.Provider>
   );
 }
 

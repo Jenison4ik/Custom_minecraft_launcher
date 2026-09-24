@@ -7,8 +7,6 @@ export interface UserSettings {
   nickname: string;
   ram: number;
   disableDownload: boolean;
-  /** Optional pin for mod loader version (overrides launcherProperties when set) */
-  loaderVersion?: string;
   windowWidth?: number;
   windowHeight?: number;
   fullscreen?: boolean;
@@ -20,7 +18,7 @@ export interface UserSettings {
 }
 
 /**
- * Full game install/launch spec: properties + user settings.
+ * Full game install/launch spec: server profile + user settings.
  */
 export interface GameSpec extends UserSettings {
   /** Vanilla Minecraft version id (e.g. 1.16.4) */
