@@ -1,4 +1,4 @@
-import { FolderArchive, LogOut, Rocket } from "lucide-react";
+import { FolderArchive, LogOut, Package, Rocket } from "lucide-react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Sidebar,
@@ -20,6 +20,7 @@ import { useAuth } from "@/store/auth";
 const items = [
   { to: "/files", label: "Сборка", icon: FolderArchive },
   { to: "/launcher", label: "Лаунчер", icon: Rocket },
+  { to: "/builds", label: "Сборки", icon: Package },
 ];
 
 export function Layout() {

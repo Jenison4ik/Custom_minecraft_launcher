@@ -29,9 +29,12 @@ test("publish launcher through the stepper", async ({ page }) => {
   await page.getByLabel("Пароль").fill("secret");
   await page.getByRole("button", { name: "Войти" }).click();
 
+  await page.getByRole("link", { name: "Сборки", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Сборки" })).toBeVisible();
+  await expect(page.getByText("Опубликованных сборок нет")).toBeVisible();
+
   await page.getByRole("link", { name: "Лаунчер" }).click();
   await expect(page.getByRole("heading", { name: "Лаунчер" })).toBeVisible();
-  await expect(page.getByText("Лаунчер ещё не публиковался")).toBeVisible();
 
   const next = page.getByRole("button", { name: "Далее" });
   await expect(next).toBeDisabled();
@@ -59,7 +62,11 @@ test("publish launcher through the stepper", async ({ page }) => {
 
   await page.getByRole("button", { name: "Опубликовать" }).click();
   await expect(page.getByText("Лаунчер обновлён")).toBeVisible();
-  await expect(page.getByText("Опубликована версия")).toBeVisible();
-  await expect(page.locator("[data-slot=badge]")).toHaveText("1.2.3");
   await expect(page.getByRole("textbox", { name: "Версия" })).toHaveValue("1.2.3");
+
+  await page.getByRole("link", { name: "Сборки", exact: true }).click();
+  await expect(page.getByText("Текущая сборка")).toBeVisible();
+  await expect(page.locator("[data-slot=badge]")).toHaveText("1.2.3");
+  await expect(page.getByText("note.txt")).toBeVisible();
+  await expect(page.getByText("version: 1.2.3")).toBeVisible();
 });

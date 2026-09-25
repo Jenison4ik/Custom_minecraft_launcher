@@ -5,7 +5,6 @@ import AnimatedFileUpload from "@/components/smoothui/animated-file-upload";
 import AnimatedStepper, { type StepItem } from "@/components/smoothui/animated-stepper";
 import Skeleton from "@/components/smoothui/skeleton-loader";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -194,16 +193,6 @@ export function LauncherPage() {
         <p className="max-w-[65ch] text-sm text-muted-foreground">
           ZIP с установщиком, версия и содержимое latest.yml.
         </p>
-        {info.data ? (
-          info.data.version ? (
-            <p className="flex items-center gap-2 text-sm text-muted-foreground">
-              Опубликована версия
-              <Badge variant="secondary">{info.data.version}</Badge>
-            </p>
-          ) : (
-            <p className="text-sm text-muted-foreground">Лаунчер ещё не публиковался</p>
-          )
-        ) : null}
       </header>
       {info.isError ? (
         <Alert variant="destructive">

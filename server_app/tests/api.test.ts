@@ -565,6 +565,32 @@ logoFile="logo.png"
       .set("Authorization", `Bearer ${auth}`);
     expect(again.body.mods[0].iconDataUrl).toBe(example?.iconDataUrl);
   });
+
+  it("lists the published launcher files", async () => {
+    const auth = await token();
+    const empty = await request(app)
+      .get("/minecraft/api/v1/admin/launcher")
+      .set("Authorization", `Bearer ${auth}`);
+    expect(empty.status).toBe(200);
+    expect(empty.body.version).toBeNull();
+    expect(empty.body.files).toEqual([]);
+
+    const uploaded = await request(app)
+      .post("/minecraft/api/v1/admin/launcher")
+      .set("Authorization", `Bearer ${auth}`)
+      .set("version", "1.2.3")
+      .field("yml", "version: 1.2.3\n")
+      .attach("file", await zipOf({ "note.txt": "ok" }), "installer.zip");
+    expect(uploaded.status).toBe(200);
+
+    const listed = await request(app)
+      .get("/minecraft/api/v1/admin/launcher")
+      .set("Authorization", `Bearer ${auth}`);
+    expect(listed.status).toBe(200);
+    expect(listed.body.version).toBe("1.2.3");
+    expect(listed.body.yml).toBe("version: 1.2.3\n");
+    expect(listed.body.files).toEqual([{ name: "note.txt", size: 2 }]);
+  });
 });
 
 function zipOf(entries: Record<string, Buffer | string>): Promise<Buffer> {
