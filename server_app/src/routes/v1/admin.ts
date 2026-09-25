@@ -227,7 +227,13 @@ export function adminRouter(config: AppConfig): Router {
     } catch {
       yml = null;
     }
-    res.json({ version, yml });
+    try {
+      const files = await listLauncherFiles(config.launcherDir);
+      res.json({ version, yml, files });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Error reading launcher" });
+    }
   });
 
   router.post("/launcher", upload.single("file"), async (req, res) => {
@@ -281,4 +287,33 @@ export function adminRouter(config: AppConfig): Router {
   });
 
   return router;
+}
+
+async function listLauncherFiles(dir: string): Promise<{ name: string; size: number }[]> {
+  const files: { name: string; size: number }[] = [];
+
+  async function walk(current: string, prefix: string): Promise<void> {
+    let entries: fs.Dirent[];
+    try {
+      entries = await fs.promises.readdir(current, { withFileTypes: true });
+    } catch (error) {
+      const code = typeof error === "object" && error !== null && "code" in error ? (error as { code?: string }).code : "";
+      if (code === "ENOENT") return;
+      throw error;
+    }
+    for (const entry of entries) {
+      const name = prefix ? `${prefix}/${entry.name}` : entry.name;
+      const absolute = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        await walk(absolute, name);
+      } else if (entry.isFile()) {
+        const stat = await fs.promises.stat(absolute);
+        files.push({ name, size: stat.size });
+      }
+    }
+  }
+
+  await walk(dir, "");
+  files.sort((left, right) => left.name.localeCompare(right.name));
+  return files;
 }

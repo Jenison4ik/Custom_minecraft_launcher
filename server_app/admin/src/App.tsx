@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "@/components/Layout";
+import { BuildsPage } from "@/pages/BuildsPage";
 import { FilesPage } from "@/pages/FilesPage";
 import { LauncherPage } from "@/pages/LauncherPage";
 import { LoginPage } from "@/pages/LoginPage";
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="/files" element={<FilesPage />} />
         <Route path="/pack" element={<Navigate to="/files" replace />} />
         <Route path="/launcher" element={<LauncherPage />} />
+        <Route path="/builds" element={<BuildsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/files" replace />} />
     </Routes>
